@@ -15,7 +15,7 @@ cd getting-started
 ./welcome.sh -h
 ```
 
-Alternatively, download a specific script using [GitHub's 'raw' button][raw].
+Alternatively, download a specific script using [GitHub's 'Raw' button][raw].
 
 ```bash
 curl -s -O https://raw.githubusercontent.com/cPacketNetworks/ccloud-deployment-automation/main/getting-started/welcome.sh
@@ -27,10 +27,10 @@ chmod 755 welcome.sh
 
 In order to better organize and maintain the content of the repository, the maintainers may occasionally change the file and directory layout.
 
-A specific version of a file can be obtained by using [GitHub permalinks][permalinks].
+A specific version of a file can be obtained by using [GitHub permalinks][permalinks] in combination with the 'Raw' button.
 
 ```bash
-curl -s -O https://raw.githubusercontent.com/cPacketNetworks/cloud-deployment-automation/786f80f3cc692ef960223fa85f509df7af016b24/getting-started/welcome.sh
+curl -s -O https://raw.githubusercontent.com/cPacketNetworks/ccloud-deployment-automation/25fc43614d65fcf8f038da7a14ab929ca0beb7ee/getting-started/welcome.sh
 chmod 755 welcome.sh
 ./welcome.sh
 ```
