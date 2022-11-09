@@ -4,7 +4,7 @@ This repository contains scripts and automations to facilitate cCloud deployment
 
 The content here is meant to supplement officially released cPacket documentation and software for cCloud.
 
-## Get started
+## Getting started
 
 Clone this repository and run a script.
 For instance,
