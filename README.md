@@ -37,7 +37,7 @@ chmod 755 welcome.sh
 
 ## Documentation
 
-For the moment, documentation and any accompanying diagrams are hosted alongside the scripts in `README.md` files.
+Each script or automation in this repository should be contained in its own directory/folder along with a `README.md` and any docs and diagrams.
 
 ## Contributing and reporting bugs
 
