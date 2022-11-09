@@ -1,7 +1,8 @@
 # Contributing
 
-At this time, we are only accepting changes to existing items via pull request.
-We may enable GitHub Issues, Wiki, and Discussions at a later time.
+**If you are a cPacket Networks customer, please report issues thorugh your tech support service account (TODO: insert link to support)**
+
+We are happy to review pull requests referenced in your support tickets.
 
 Each script or automation should be contained in an enclosing directory with accompanying `README.md` and any related diagrams.
 
