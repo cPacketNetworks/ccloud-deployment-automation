@@ -10,7 +10,7 @@ Clone this repository and run a script.
 For instance,
 
 ```bash
-git clone https://github.com/mbrightcpacket/ccloud-deployment-automation
+git clone https://github.com/cpacketnetworks/ccloud-deployment-automation
 cd getting-started
 ./welcome.sh -h
 ```
