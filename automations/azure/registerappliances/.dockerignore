@@ -1,0 +1,5 @@
+.funcignore
+.gitignore
+.venv
+getting-started.md
+local.settings.json
