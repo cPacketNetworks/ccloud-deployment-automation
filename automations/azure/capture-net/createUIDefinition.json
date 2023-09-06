@@ -426,72 +426,6 @@
 				]
             },
             {
-                "name": "monitorSection",
-                "type": "Microsoft.Common.Section",
-                "label": "Monitoring",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "notifyEmail",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Notification Email",
-                        "toolTip": "Email address used for Azure Monitor events about health check failures",
-                        "defaultValue": "you@yourcompany.com",
-                        "constraints": {
-                            "required": false
-                        }
-                    }
-                ]
-            },
-            {
-                "name": "extrasSection",
-                "type": "Microsoft.Common.Section",
-                "label": "Extras (optional)",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "adminVmEnable",
-                        "type": "Microsoft.Common.CheckBox",
-                        "label": "Enable Admin VM",
-                        "defaultValue": false
-                    },
-                    {
-                        "name": "adminVmName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Admin VM Name",
-                        "toolTip": "This is the name for the Admin VM - the Deployment id will be prepended to this name. ",
-                        "defaultValue": "[concat(basics('generalSection').deploymentId,'-adminvm')]",
-                        "constraints": {
-                            "required": true,
-                            "regex": "^[a-z0-9A-Z-]{3,79}$",
-                            "validationMessage": "The VM Name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
-                        }
-                    },
-                    {
-                        "name": "adminVmSize",
-                        "type": "Microsoft.Compute.SizeSelector",
-                        "label": "Size",
-                        "toolTip": "",
-                        "recommendedSizes": [
-                            "Standard_B1ms",
-                            "Standard_B2ms",
-                            "Standard_D4_v5"
-                        ],
-                        "options": {
-                            "hideDiskTypeFilter": false
-                        },
-                        "osPlatform": "Linux",
-                        "imageReference": {
-                            "publisher": "Canonical",
-                            "offer": "UbuntuServer",
-                            "sku": "20.04-LTS"
-                        },
-                        "count": 1,
-                        "visible": true
-                    }
-                ]
-            },
-            {
                 "name": "tagsSection",
                 "type": "Microsoft.Common.Section",
                 "label": "Tags",
@@ -549,7 +483,6 @@
             "adminVmEnable":"[steps('extrasSection').adminVmEnable]",
             "adminVmName": "[steps('extrasSection').adminVmName]",
             "adminVmSize": "[steps('extrasSection').adminVmSize]",
-            "notifyEmail": "[steps('monitorSection').notifyEmail]",
             "tags":"[steps('tagsSection').tagsByResource]"
         }
     }

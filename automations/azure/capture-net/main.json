@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "12823035395574617098"
+      "templateHash": "16653363967521713008"
     }
   },
   "parameters": {
@@ -43,10 +43,6 @@
     "cstorvVmImageId": {
       "type": "string"
     },
-    "cclearvEnable": {
-      "type": "bool",
-      "defaultValue": false
-    },
     "cclearvName": {
       "type": "string",
       "defaultValue": "cClear-V"
@@ -77,9 +73,6 @@
       "type": "int"
     },
     "downstreamTools": {
-      "type": "string"
-    },
-    "notifyEmail": {
       "type": "string"
     },
     "tags": {
@@ -315,7 +308,6 @@
       ]
     },
     {
-      "condition": "[parameters('cclearvEnable')]",
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2020-11-01",
       "name": "[parameters('cclearvName')]",
@@ -341,7 +333,6 @@
       ]
     },
     {
-      "condition": "[parameters('cclearvEnable')]",
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2021-03-01",
       "name": "[parameters('cclearvName')]",
@@ -573,7 +564,7 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2022-09-01",
-      "name": "registerangryhippo",
+      "name": "cpacketappliances",
       "kind": "elastic",
       "location": "[parameters('location')]",
       "properties": {
@@ -599,7 +590,7 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2022-09-01",
-      "name": "registerangryhippo",
+      "name": "cpacketappliances",
       "sku": {
         "name": "Standard_LRS"
       },
@@ -635,7 +626,7 @@
     {
       "type": "Microsoft.Insights/components",
       "apiVersion": "2020-02-02",
-      "name": "registerangryhippo",
+      "name": "cpacketappliances",
       "location": "[parameters('location')]",
       "tags": {},
       "kind": "web",
