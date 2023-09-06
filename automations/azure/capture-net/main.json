@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "13836689246649661852"
+      "templateHash": "12823035395574617098"
     }
   },
   "parameters": {
@@ -571,6 +571,32 @@
       }
     },
     {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2022-09-01",
+      "name": "registerangryhippo",
+      "kind": "elastic",
+      "location": "[parameters('location')]",
+      "properties": {
+        "perSiteScaling": false,
+        "elasticScaleEnabled": true,
+        "maximumElasticWorkerCount": 1,
+        "isSpot": false,
+        "reserved": true,
+        "isXenon": false,
+        "hyperV": false,
+        "targetWorkerCount": 0,
+        "targetWorkerSizeId": 0,
+        "zoneRedundant": false
+      },
+      "sku": {
+        "name": "EP1",
+        "tier": "ElasticPremium",
+        "size": "EP1",
+        "family": "EP",
+        "capacity": 1
+      }
+    },
+    {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2022-09-01",
       "name": "registerangryhippo",
@@ -635,101 +661,6 @@
       },
       "location": "global",
       "tags": {}
-    },
-    {
-      "type": "Microsoft.EventGrid/eventSubscriptions",
-      "apiVersion": "2023-06-01-preview",
-      "name": "scaling",
-      "properties": {
-        "destination": {
-          "properties": {
-            "resourceId": "[resourceId('Microsoft.Web/sites/functions', 'registerangryhippo', 'applianceregistration')]",
-            "maxEventsPerBatch": 1,
-            "preferredBatchSizeInKilobytes": 64
-          },
-          "endpointType": "AzureFunction"
-        },
-        "filter": {
-          "subjectBeginsWith": "",
-          "subjectEndsWith": "",
-          "includedEventTypes": [
-            "Microsoft.Resources.ResourceWriteSuccess",
-            "Microsoft.Resources.ResourceWriteFailure",
-            "Microsoft.Resources.ResourceWriteCancel",
-            "Microsoft.Resources.ResourceDeleteSuccess",
-            "Microsoft.Resources.ResourceDeleteFailure",
-            "Microsoft.Resources.ResourceDeleteCancel",
-            "Microsoft.Resources.ResourceActionSuccess",
-            "Microsoft.Resources.ResourceActionFailure",
-            "Microsoft.Resources.ResourceActionCancel"
-          ],
-          "enableAdvancedFilteringOnArrays": true
-        },
-        "labels": [
-          "functions-applianceregistration"
-        ],
-        "eventDeliverySchema": "EventGridSchema",
-        "retryPolicy": {
-          "maxDeliveryAttempts": 30,
-          "eventTimeToLiveInMinutes": 1440
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/sites/functions', 'registerangryhippo', 'applianceregistration')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2022-09-01",
-      "name": "registerangryhippo",
-      "kind": "functionapp,linux,container",
-      "location": "[parameters('location')]",
-      "properties": {
-        "siteConfig": {
-          "linuxFxVersion": "DOCKER|cPacketNetworks/registerappliances:0.0.2",
-          "functionAppScaleLimit": 30,
-          "minimumElasticInstanceCount": 0
-        },
-        "managedEnvironmentId": "[resourceId('Microsoft.App/managedEnvironments', 'registerangryhippo')]",
-        "storageAccountRequired": false
-      },
-      "identity": {
-        "type": "None"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', 'registerangryhippo')]"
-      ]
-    },
-    {
-      "type": "Microsoft.Web/sites/functions",
-      "apiVersion": "2022-09-01",
-      "name": "[format('{0}/{1}', 'registerangryhippo', 'applianceregistration')]",
-      "properties": {
-        "config": {
-          "scriptFile": "__init__.py",
-          "bindings": [
-            {
-              "type": "eventGridTrigger",
-              "name": "event",
-              "direction": "in"
-            }
-          ]
-        },
-        "language": "python",
-        "isDisabled": false
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', 'registerangryhippo')]"
-      ]
-    },
-    {
-      "type": "Microsoft.App/managedEnvironments",
-      "apiVersion": "2023-05-01",
-      "name": "registerangryhippo",
-      "location": "[parameters('location')]",
-      "properties": {
-        "zoneRedundant": false
-      }
     }
   ]
 }
