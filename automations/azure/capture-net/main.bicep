@@ -32,10 +32,6 @@
 // param TESTexistingNIC string
 // param cclearvVmImageLocation string
 // param cclearvVmImageName string
-// param adminVmEnable string
-// param adminVmName string
-// param adminVmSize string
-// param notifyEmail string
 
 param location string
 
@@ -51,7 +47,6 @@ param cstorvVmNumDisks int
 param cstorvVmDiskSize int
 param cstorvVmImageId string
 
-param cclearvEnable bool = false
 param cclearvName string = 'cClear-V'
 param cclearvVmSize string = 'Standard_D4s_v5'
 param cclearvVmImageId string
@@ -65,7 +60,6 @@ param vmssMax int
 
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
-param notifyEmail string
 
 // Docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
 param tags object
@@ -171,7 +165,7 @@ var cvuv_cloud_init = replace(cvuv_cloud_init_template, 'DOWNSTREAM_CAPTURE_IPS'
 
 // Network - Vnet and monitoring network. 
 // TODO: is there a way to condition on null values instead of the magic 'new' string?
-resource observabilityVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.name
   location: location
   properties: {
@@ -185,7 +179,7 @@ resource observabilityVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (
 
 resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.subnets.monitoringSubnet.name
-  parent: observabilityVnet
+  parent: monitoringVnet
   properties: {
     addressPrefix: virtualNetwork.subnets.monitoringSubnet.addressPrefix
     networkSecurityGroup: {
@@ -196,7 +190,7 @@ resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
 
 resource functionssubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.subnets.functionsSubnet.name
-  parent: observabilityVnet
+  parent: monitoringVnet
   properties: {
     addressPrefix: virtualNetwork.subnets.functionsSubnet.addressPrefix
     // addressPrefix: cidrSubnet(virtualNetwork.addressPrefixes[0], 24, 11)
@@ -310,7 +304,7 @@ resource cstorcapturenic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (
   name: '${cstorvName}-cap-nic'
   location: location
   dependsOn: [
-    observabilityVnet
+    monitoringVnet
   ]
   properties: {
     ipConfigurations: [
@@ -362,7 +356,7 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
   // ANDY NOTE: I started getting errors that the vnet resource was not found
   //           I'm guessing this is because there are no references to the vnet resource in here -- the monsubnetId is a variable
   dependsOn: [
-    observabilityVnet
+    monitoringVnet
   ]
 
   name: cstorvName
@@ -421,11 +415,11 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? tags['Microsoft.Compute/virtualMachines'] : null
 }
 
-resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cclearvEnable) {
+resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = {
   name: cclearvName
   location: location
   dependsOn: [
-    observabilityVnet
+    monitoringVnet
   ]
   properties: {
     ipConfigurations: [
@@ -445,9 +439,9 @@ resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cclea
 }
 
 // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachines?pivots=deployment-language-bicep
-resource cclearvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cclearvEnable) {
+resource cclearvm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   dependsOn: [
-    observabilityVnet
+    monitoringVnet
   ]
   name: cclearvName
   location: location
@@ -505,7 +499,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
   // ALSO NOTE: I ran this many times __without__ adding this -- so its also hard to verify directly if this actually fixed it. 
   // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added. you're welcome. 
   dependsOn: [
-    observabilityVnet
+    monitoringVnet
     lb
   ]
 
@@ -763,12 +757,12 @@ resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-0
 }
 
 resource hostplan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: 'registerangryhippo'
+  name: 'cpacketappliances'
   kind: 'elastic'
   location: location
   properties: {
     // serverFarmId: 14883
-    // name: 'registerangryhippo'
+    // name: 'cpacketappliances'
     // workerSize: 'D1'
     // workerSizeId: 3
     // currentWorkerSize: 'D1'
@@ -799,12 +793,12 @@ resource hostplan 'Microsoft.Web/serverfarms@2022-09-01' = {
   }
 }
 
-resource registerangryhippoStorage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
+resource cpacketappliancesStorage 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   sku: {
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  name: 'registerangryhippo'
+  name: 'cpacketappliances'
   location: location
   tags: {}
   properties: {
@@ -834,8 +828,8 @@ resource registerangryhippoStorage 'Microsoft.Storage/storageAccounts@2022-09-01
   }
 }
 
-resource registerangryhippoMonitoring 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'registerangryhippo'
+resource cpacketappliancesMonitoring 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'cpacketappliances'
   location: location
   tags: {}
   kind: 'web'
@@ -865,8 +859,8 @@ resource vmssevents 'Microsoft.EventGrid/systemTopics@2022-06-15' = {
   name: 'vmss-events'
 }
 
-// resource registerangryhippo 'Microsoft.Web/sites@2022-09-01' = {
-//   name: 'registerangryhippo'
+// resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
+//   name: 'cpacketappliances'
 //   kind: 'functionapp,linux,container'
 //   location: location
 //   properties: {
