@@ -480,9 +480,6 @@
             "cclearvVmImageId" : "[steps('cclearvSection').cclearvVmImageSelector.id]",
             "cclearvVmImageLocation" : "[steps('cclearvSection').cclearvVmImageSelector.location]",
             "cclearvVmImageName" : "[steps('cclearvSection').cclearvVmImageSelector.name]",
-            "adminVmEnable":"[steps('extrasSection').adminVmEnable]",
-            "adminVmName": "[steps('extrasSection').adminVmName]",
-            "adminVmSize": "[steps('extrasSection').adminVmSize]",
             "tags":"[steps('tagsSection').tagsByResource]"
         }
     }
