@@ -949,11 +949,12 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
         }
         {
           name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${cpacketappliancesStorage};EndpointSuffix=${environment().suffixes.storage};AccountKey=${cpacketappliancesStorage.listKeys().keys[0].value}'
+          // value: 'DefaultEndpointsProtocol=https;AccountName=cpacketappliances;AccountKey=wJ3LB/H9QPtN+z2hSt7JhiYNyoE9cDzW6DcAXzcG9A/n6QOmjCPx8TuaqDblE83hkiLVP9OH84VR+AStyEJJuQ==;EndpointSuffix=core.windows.net'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${cpacketappliancesStorage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${cpacketappliancesStorage.listKeys().keys[0].value}'
         }
         {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: cpacketappliancesMonitoring.properties.InstrumentationKey
+          value: cpacketappliancesMonitoring.properties.InstrumentationKey // Is this correct?
         }
       ]
     }
