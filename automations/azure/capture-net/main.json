@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "10736276434284556851"
+      "templateHash": "12474321354734770219"
     }
   },
   "parameters": {
@@ -81,6 +81,9 @@
     },
     "tags": {
       "type": "object"
+    },
+    "cpacketPassword": {
+      "type": "string"
     }
   },
   "variables": {
@@ -681,7 +684,13 @@
           "alwaysOn": false,
           "http20Enabled": false,
           "functionAppScaleLimit": 0,
-          "minimumElasticInstanceCount": 1
+          "minimumElasticInstanceCount": 1,
+          "appSettings": [
+            {
+              "name": "APPLIANCE_HTTP_BASIC_AUTH_PASSWORD",
+              "value": "[parameters('cpacketPassword')]"
+            }
+          ]
         },
         "scmSiteAlsoStopped": false,
         "clientAffinityEnabled": false,
