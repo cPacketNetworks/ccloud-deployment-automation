@@ -2,8 +2,8 @@
 set -e
 
 # Set the following variables as appropriate
-resource_group="angryhippo-bicep-test"
-app="registerangryhippo"
+resource_group="mbright-literate-eel"
+app="cpacketappliances"
 
 # The script begins below this line
 

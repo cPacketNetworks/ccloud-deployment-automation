@@ -58,6 +58,8 @@ param cvuvVmImageId string
 param vmssMin int
 param vmssMax int
 
+param functionAppName string = 'cpacketappliances'
+
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
 
@@ -875,3 +877,104 @@ resource vmssevents 'Microsoft.EventGrid/systemTopics@2022-06-15' = {
 //     type: 'None'
 //   }
 // }
+
+resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
+  name: functionAppName
+  kind: 'functionapp,linux'
+  location: location
+  // tags: {
+  //   owner: 'cpacket@cpacketnetworks.com'
+  // }
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    // name: 'cpacketappliances'
+    // webSpace: 'mbright-github-EastUS2webspace-Linux'
+    // selfLink: 'https://waws-prod-bn1-199.api.azurewebsites.windows.net:454/subscriptions/93004638-8c6b-4e33-ba58-946afd57efdf/webspaces/mbright-github-EastUS2webspace-Linux/sites/cpacketappliances'
+    enabled: true
+    // adminEnabled: true
+    // siteProperties: {
+    //   metadata: null
+    //   properties: [
+    //     {
+    //       name: 'LinuxFxVersion'
+    //       value: 'Python|3.10'
+    //     }
+    //     {
+    //       name: 'WindowsFxVersion'
+    //       value: null
+    //     }
+    //   ]
+    //   appSettings: null
+    // }
+    // csrs: []
+    // hostNameSslStates: [
+    //   {
+    //     name: 'cpacketappliances.azurewebsites.net'
+    //     sslState: 'Disabled'
+    //     ipBasedSslState: 'NotConfigured'
+    //     hostType: 'Standard'
+    //   }
+    //   {
+    //     name: 'cpacketappliances.scm.azurewebsites.net'
+    //     sslState: 'Disabled'
+    //     ipBasedSslState: 'NotConfigured'
+    //     hostType: 'Repository'
+    //   }
+    // ]
+    serverFarmId: hostplan.id
+    reserved: true
+    isXenon: false
+    hyperV: false
+    // storageRecoveryDefaultState: 'Running'
+    // contentAvailabilityState: 'Normal'
+    // runtimeAvailabilityState: 'Normal'
+    // dnsConfiguration: {}
+    vnetRouteAllEnabled: true
+    // vnetImagePullEnabled: false
+    vnetContentShareEnabled: false
+    siteConfig: {
+      numberOfWorkers: 1
+      linuxFxVersion: 'Python|3.10'
+      acrUseManagedIdentityCreds: false
+      alwaysOn: false
+      http20Enabled: false
+      functionAppScaleLimit: 0
+      minimumElasticInstanceCount: 1
+    }
+    // deploymentId: 'cpacketappliances'
+    // sku: 'ElasticPremium'
+    scmSiteAlsoStopped: false
+    clientAffinityEnabled: false
+    clientCertEnabled: false
+    clientCertMode: 'Required'
+    hostNamesDisabled: false
+    // vnetBackupRestoreEnabled: false
+    // customDomainVerificationId: 'E9894CA4C1882ED2CD721B3E6BED48800A7C9E248560A3D805E49D787E2B4796'
+    // kind: 'functionapp,linux'
+    // inboundIpAddress: '20.119.136.11'
+    // possibleInboundIpAddresses: '20.119.136.11'
+    // ftpUsername: 'cpacketappliances\\$cpacketappliances'
+    // ftpsHostName: 'ftps://waws-prod-bn1-199.ftp.azurewebsites.windows.net/site/wwwroot'
+    containerSize: 1536
+    dailyMemoryTimeQuota: 0
+    // siteDisabledReason: 0
+    // homeStamp: 'waws-prod-bn1-199'
+    // tags: {
+    //   owner: 'mbright@cpacketnetworks.com'
+    //   'hidden-link: /app-insights-resource-id': '/subscriptions/93004638-8c6b-4e33-ba58-946afd57efdf/resourceGroups/mbright-literate-eel/providers/Microsoft.Insights/components/cpacketappliances'
+    // }
+    httpsOnly: true
+    // endToEndEncryptionEnabled: false
+    redundancyMode: 'None'
+    // privateEndpointConnections: []
+    publicNetworkAccess: 'Enabled'
+    // eligibleLogCategories: 'FunctionAppLogs'
+    // inFlightFeatures: []
+    storageAccountRequired: false
+    virtualNetworkSubnetId: functionssubnet.id
+    keyVaultReferenceIdentity: 'SystemAssigned'
+    // defaultHostNameScope: 'Global'
+  }
+}
