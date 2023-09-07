@@ -1,5 +1,2 @@
-.dockerignore
+deploy-func.sh
 .gitignore
-Dockerfile
-getting-started.md
-local.settings.json

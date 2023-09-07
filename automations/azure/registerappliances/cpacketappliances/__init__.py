@@ -4,6 +4,7 @@ import json
 import requests
 import hashlib
 import re
+import os
 
 import azure.functions as func
 import azure.keyvault.secrets
@@ -14,6 +15,8 @@ import azure.mgmt.subscription
 import azure.mgmt.network
 import typing
 
+appliance_type_key = "cpacket:ApplianceType"
+appliance_type_value = "cClear-V"
 key_vault_name = "cpacket"
 appliance_username = "cpacket"
 
@@ -71,10 +74,10 @@ def main(event: func.EventGridEvent):
         logging.info(f"no CVUVs found in {scale_set_name}")
         return
 
-    cclearv_instance = get_vm_by_tag(compute_client, "cpacket:ApplianceType", "cclearv")
+    cclearv_instance = get_vm_by_tag(compute_client, appliance_type_key, appliance_type_value)
     if cclearv_instance is None:
         logging.error(
-            "Failed to find cClear-V instance with tag cpacket:ApplianceType=cclearv: bailing"
+            f"Failed to find cClear-V instance with tag {appliance_type_key}={appliance_type_value}: bailing"
         )
         return
 
@@ -402,22 +405,23 @@ def get_vm_by_tag(
 
 
 def get_cpacket_credentials() -> typing.Tuple[str, str]:
-    key_vault_uri = f"https://{key_vault_name}.vault.azure.net"
+    # key_vault_uri = f"https://{key_vault_name}.vault.azure.net"
 
-    credentials = azure.identity.ManagedIdentityCredential()
-    secrets_client = azure.keyvault.secrets.SecretClient(
-        vault_url=key_vault_uri, credential=credentials
-    )
-    retrieved_secret = secrets_client.get_secret(appliance_username)
-    if retrieved_secret is None:
-        logging.error(f"failed to get secret '{appliance_username}'")
-        return ("", "")
+    # credentials = azure.identity.ManagedIdentityCredential()
+    # secrets_client = azure.keyvault.secrets.SecretClient(
+    #     vault_url=key_vault_uri, credential=credentials
+    # )
+    # retrieved_secret = secrets_client.get_secret(appliance_username)
+    # if retrieved_secret is None:
+    #     logging.error(f"failed to get secret '{appliance_username}'")
+    #     return ("", "")
 
-    password = retrieved_secret.value
-    if password is None:
-        logging.error(f"failed to get secret value for 'cvuv'")
-        return ("", "")
+    # password = retrieved_secret.value
+    # if password is None:
+    #     logging.error(f"failed to get secret value for 'cvuv'")
+    #     return ("", "")
 
+    password = os.environ["APPLIANCE_HTTP_BASIC_AUTH_PASSWORD"]
     return (appliance_username, password)
 
 

@@ -66,6 +66,8 @@ param downstreamTools string
 // Docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
 param tags object
 
+param cpacketPassword string
+
 // Parameters - end
 //////////////////////////////////////////////////////////////////////////////
 
@@ -942,6 +944,12 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
       http20Enabled: false
       functionAppScaleLimit: 0
       minimumElasticInstanceCount: 1
+      appSettings: [
+        {
+          name: 'APPLIANCE_HTTP_BASIC_AUTH_PASSWORD'
+          value: cpacketPassword
+        }
+      ]
     }
     // deploymentId: 'cpacketappliances'
     // sku: 'ElasticPremium'

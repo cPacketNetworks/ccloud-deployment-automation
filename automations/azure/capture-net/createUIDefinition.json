@@ -446,6 +446,32 @@
                         ]
                     }
                 ]
+            },
+            {
+                "name": "httpBasicAuthSection",
+                "type": "Microsoft.Common.Section",
+                "label": "HTTP Basic Authentication",
+                "visible": true,
+                "elements": [
+                    {
+                        "name": "cPacketPassword",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                          "password": "Password",
+                          "confirmPassword": "Confirm password"
+                        },
+                        "toolTip": "The password for the cPacket user",
+                        "constraints": {
+                          "required": true,
+                          "regex": "^[a-zA-Z0-9]{8,}$",
+                          "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
+                        },
+                        "options": {
+                          "hideConfirmation": false
+                        },
+                        "visible": true
+                      }
+                ]
             }
         ],
         "outputs": { 
@@ -480,6 +506,7 @@
             "cclearvVmImageId" : "[steps('cclearvSection').cclearvVmImageSelector.id]",
             "cclearvVmImageLocation" : "[steps('cclearvSection').cclearvVmImageSelector.location]",
             "cclearvVmImageName" : "[steps('cclearvSection').cclearvVmImageSelector.name]",
+            "cpacketPassword": "[steps('httpBasicAuthSection').cPacketPassword]",
             "tags":"[steps('tagsSection').tagsByResource]"
         }
     }
