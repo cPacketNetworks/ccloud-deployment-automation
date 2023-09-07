@@ -66,6 +66,7 @@ param downstreamTools string
 // Docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
 param tags object
 
+@secure()
 param cpacketPassword string
 
 // Parameters - end
@@ -772,7 +773,6 @@ resource hostplan 'Microsoft.Web/serverfarms@2022-09-01' = {
     // currentWorkerSize: 'D1'
     // currentWorkerSizeId: 3
     // currentNumberOfWorkers: 1
-    // webSpace: 'mbright-bicep-test-EastUS2webspace-Linux'
     // planName: 'VirtualDedicatedPlan'
     // computeMode: 'Dynamic' // or 'Dedicated'?
     perSiteScaling: false
@@ -892,8 +892,6 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
   }
   properties: {
     // name: 'cpacketappliances'
-    // webSpace: 'mbright-github-EastUS2webspace-Linux'
-    // selfLink: 'https://waws-prod-bn1-199.api.azurewebsites.windows.net:454/subscriptions/93004638-8c6b-4e33-ba58-946afd57efdf/webspaces/mbright-github-EastUS2webspace-Linux/sites/cpacketappliances'
     enabled: true
     // adminEnabled: true
     // siteProperties: {
@@ -977,10 +975,6 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
     dailyMemoryTimeQuota: 0
     // siteDisabledReason: 0
     // homeStamp: 'waws-prod-bn1-199'
-    // tags: {
-    //   owner: 'mbright@cpacketnetworks.com'
-    //   'hidden-link: /app-insights-resource-id': '/subscriptions/93004638-8c6b-4e33-ba58-946afd57efdf/resourceGroups/mbright-literate-eel/providers/Microsoft.Insights/components/cpacketappliances'
-    // }
     httpsOnly: true
     // endToEndEncryptionEnabled: false
     redundancyMode: 'None'

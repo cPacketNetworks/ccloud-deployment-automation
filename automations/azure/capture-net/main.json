@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "3027018950062753800"
+      "templateHash": "10400535443598946908"
     }
   },
   "parameters": {
@@ -83,7 +83,7 @@
       "type": "object"
     },
     "cpacketPassword": {
-      "type": "string"
+      "type": "securestring"
     }
   },
   "variables": {
