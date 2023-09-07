@@ -956,6 +956,14 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
           name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
           value: cpacketappliancesMonitoring.properties.InstrumentationKey // Is this correct?
         }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'python'
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
       ]
     }
     // deploymentId: 'cpacketappliances'
