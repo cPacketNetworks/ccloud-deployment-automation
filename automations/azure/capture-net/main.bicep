@@ -949,6 +949,14 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
           name: 'APPLIANCE_HTTP_BASIC_AUTH_PASSWORD'
           value: cpacketPassword
         }
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${cpacketappliancesStorage};EndpointSuffix=${environment().suffixes.storage};AccountKey=${cpacketappliancesStorage.listKeys().keys[0].value}'
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: cpacketappliancesMonitoring.properties.InstrumentationKey
+        }
       ]
     }
     // deploymentId: 'cpacketappliances'

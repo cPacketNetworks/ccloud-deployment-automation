@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.20.4.51522",
-      "templateHash": "12474321354734770219"
+      "templateHash": "3027018950062753800"
     }
   },
   "parameters": {
@@ -689,6 +689,14 @@
             {
               "name": "APPLIANCE_HTTP_BASIC_AUTH_PASSWORD",
               "value": "[parameters('cpacketPassword')]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', reference(resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances'), '2022-09-01', 'full'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances'), '2022-09-01').keys[0].value)]"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', 'cpacketappliances'), '2020-02-02').InstrumentationKey]"
             }
           ]
         },
@@ -707,6 +715,8 @@
         "keyVaultReferenceIdentity": "SystemAssigned"
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', 'cpacketappliances')]",
+        "[resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances')]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.functionsSubnet.name)]",
         "[resourceId('Microsoft.Web/serverfarms', 'cpacketappliances')]"
       ]
