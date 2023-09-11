@@ -963,6 +963,10 @@ resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
           name: 'FUNCTIONS_EXTENSION_VERSION'
           value: '~4'
         }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '0'
+        }
       ]
     }
     // deploymentId: 'cpacketappliances'

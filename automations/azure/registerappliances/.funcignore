@@ -1,3 +1,2 @@
-deploy-func.sh
+deploy.sh
 .gitignore
-.python_packages
