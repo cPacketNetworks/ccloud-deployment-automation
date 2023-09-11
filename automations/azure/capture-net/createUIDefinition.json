@@ -190,89 +190,6 @@
                 ]
             },
             {
-                "name": "cstorvSection",
-                "type": "Microsoft.Common.Section",
-                "label": "cStor-V configuration",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "cstorvEnable",
-                        "type": "Microsoft.Common.CheckBox",
-                        "label": "Deploy cStor-V (optional)",
-                        "defaultValue": false
-                    },
-                    {
-                        "name": "cstorvName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "cStor-V Name",
-                        "toolTip": "This cStor-V appliance will be configured to receive packets from the cVu-V packet brokers in the scale set.",
-                        "defaultValue": "[concat(basics('generalSection').deploymentId,'-cstorv')]",
-                        "constraints": {
-                            "required": false,
-                            "regex": "^[a-z0-9A-Z-]{3,79}$",
-                            "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
-                        }
-                    },
-                    {
-                        "name": "cstorvVmImageSelector",
-                        "type": "Microsoft.Solutions.ResourceSelector",
-                        "label": "Select a cStor-V Image",
-                        "toolTip": "The cStor-V will be launched from this image",
-                        "resourceType": "Microsoft.Compute/images",
-                        "options": {
-                            "filter": {
-                                "subscription": "onBasics",
-                                "location": "[location()]"
-                            }
-                        }
-                    },
-                    {
-                        "name": "cstorvVmSize",
-                        "type": "Microsoft.Compute.SizeSelector",
-                        "label": "Size",
-                        "toolTip": "",
-                        "recommendedSizes": [
-                            "Standard_D4s_v5",
-                            "Standard_D8s_v5"
-                        ],
-                        "options": {
-                            "hideDiskTypeFilter": false
-                        },
-                        "osPlatform": "Linux",
-                        "count": 1,
-                        "visible": true
-                    },
-                    {
-                        "name": "cstorvVmNumDisks",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Number of Data Disks",
-                        "placeholder": "",
-                        "defaultValue": "2",
-                        "toolTip": "To calculate the number of cStor Disks needed, contact a cPacket representative.",
-                        "constraints": {
-                            "required": true,
-                            "regex": "^[2-9]{1}$",
-                            "validationMessage": "Only numeric characters are allowed, and the value must be 2-9."
-                        },
-                        "visible": true
-                    },
-                    {
-                        "name": "cstorvVmDiskSize",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Size of Data Disks",
-                        "placeholder": "",
-                        "defaultValue": "500",
-                        "toolTip": "To calculate the size of cStor Disks needed, contact a cPacket representative.",
-                        "constraints": {
-                            "required": true,
-                            "regex": "^[1-9]{1}[0-9]{1,3}$",
-                            "validationMessage": "Only numeric characters are allowed, and the value must be 100-9999."
-                        },
-                        "visible": true
-                    }                    
-				]
-            },
-            {
                 "name": "cvuvSection",
                 "type": "Microsoft.Common.Section",
                 "label": "cVu-V configuration",
@@ -483,14 +400,6 @@
             "adminUser": "[basics('generalSection').adminUserName]",
             "sshPublicKey": "[basics('generalSection').credentials.sshPublicKey]",
             "virtualNetwork": "[steps('networkSection').virtualNetwork]",
-            "cstorvEnable" : "[steps('cstorvSection').cstorvEnable]",
-            "cstorvName" : "[steps('cstorvSection').cstorvName]",
-            "cstorvVmImageId" : "[steps('cstorvSection').cstorvVmImageSelector.id]",
-            "cstorvVmImageLocation" : "[steps('cstorvSection').cstorvVmImageSelector.location]",
-            "cstorvVmImangeName" : "[steps('cstorvSection').cstorvVmImageSelector.name]",
-            "cstorvVmSize": "[steps('cstorvSection').cstorvVmSize]",
-            "cstorvVmNumDisks":"[int(steps('cstorvSection').cstorvVmNumDisks)]",
-            "cstorvVmDiskSize":"[int(steps('cstorvSection').cstorvVmDiskSize)]",
             "lbName": "[steps('cvuvSection').lbName]",
             "vmssName" : "[steps('cvuvSection').vmssName]",
             "vmssVmSize": "[steps('cvuvSection').vmssVmSize]",

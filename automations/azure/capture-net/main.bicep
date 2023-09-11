@@ -33,19 +33,15 @@
 // param cclearvVmImageLocation string
 // param cclearvVmImageName string
 
+@secure()
+param cpacketPassword string
+
 param location string
 
 param deploymentId string
 param adminUser string
 param sshPublicKey string
 param virtualNetwork object
-
-param cstorvEnable bool = false
-param cstorvName string
-param cstorvVmSize string
-param cstorvVmNumDisks int
-param cstorvVmDiskSize int
-param cstorvVmImageId string
 
 param cclearvName string = 'cClear-V'
 param cclearvVmSize string = 'Standard_D4s_v5'
@@ -58,16 +54,11 @@ param cvuvVmImageId string
 param vmssMin int
 param vmssMax int
 
-param functionAppName string = 'cpacketappliances'
-
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
 
 // Docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
 param tags object
-
-@secure()
-param cpacketPassword string
 
 // Parameters - end
 //////////////////////////////////////////////////////////////////////////////
@@ -89,11 +80,6 @@ var lbProbeId = resourceId('Microsoft.Network/loadBalancers/probes', lbName, lbP
 
 var vmssInstRepairGracePeriod = 'PT10M'
 // var vmssInstRepairAction = 'Replace'
-
-// For production deployment this should be 'Detach' so data isn't lost; 
-// for testing 'Delete' works, but since we're in a resource group deleting the whole RG is probably a better approach
-// var cstorvDataDiskDeleteOption = 'Delete'
-var cstorvDataDiskDeleteOption = 'Detach'
 
 // TODO: will probably need to add these to the UI and bring in as params.
 var autoscaleUpThreshhold = 10000000 // 10 MBytes
@@ -198,7 +184,6 @@ resource functionssubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' 
   parent: monitoringVnet
   properties: {
     addressPrefix: virtualNetwork.subnets.functionsSubnet.addressPrefix
-    // addressPrefix: cidrSubnet(virtualNetwork.addressPrefixes[0], 24, 11)
     delegations: [
       {
         name: 'Microsoft.Web.serverFarms'
@@ -295,129 +280,6 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
       }
     ]
   }
-}
-
-// cstor-v resources
-// Andy note: placeholder - lifted from Jayme's code
-// docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachines?pivots=deployment-language-bicep
-
-// cstor-v capture nic resource -- for private/non-public networking
-// ANDY NOTE: there seems to be an issue when creating VMs that don't have public networking/ip configs setup 
-//            seems as though you have to create the nic and VM's separately see https://github.com/Azure/azure-rest-api-specs/issues/19446 
-//            Also, FYI - declaring separate nic resources did resolve this error -- argh!
-resource cstorcapturenic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
-  name: '${cstorvName}-cap-nic'
-  location: location
-  dependsOn: [
-    monitoringVnet
-  ]
-  properties: {
-    ipConfigurations: [
-      {
-        name: '${cstorvName}-cap-ipcfg'
-        properties: {
-          subnet: {
-            id: monitoringSubnetId
-          }
-          privateIPAllocationMethod: 'Dynamic'
-        }
-      }
-    ]
-    enableAcceleratedNetworking: true
-  }
-  tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
-}
-
-// cstor-v management nic resource -- for private/non-public networking
-// ANDY NOTE: there seems to be an issue when creating VMs that don't have public networking/ip configs setup 
-//            seems as though you have to create the nic and VM's separately see https://github.com/Azure/azure-rest-api-specs/issues/19446 
-// resource cstormgmtenic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
-//   name: '${cstorvName}-mgmt-nic'
-//   location: location
-//   dependsOn: [
-//     vnet
-//   ]
-//   properties: {
-//     ipConfigurations: [
-//       {
-//         name: '${cstorvName}-mgmt-ipcfg'
-//         properties: {
-//           subnet: {
-//             id: mgmtsubnetId
-//           }
-//           privateIPAllocationMethod: 'Dynamic'
-//         }
-//       }
-//     ]
-//     enableAcceleratedNetworking: true
-//   }
-//   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
-// }
-
-// cstor-v virtual machine
-resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnable) {
-
-  // TODO: is this explicit dependency needed?
-  // ANDY NOTE: I started getting errors that the vnet resource was not found
-  //           I'm guessing this is because there are no references to the vnet resource in here -- the monsubnetId is a variable
-  dependsOn: [
-    monitoringVnet
-  ]
-
-  name: cstorvName
-  location: location
-  properties: {
-    hardwareProfile: {
-      vmSize: cstorvVmSize
-    }
-    storageProfile: {
-      imageReference: {
-        // ANDY NOTE: this image is in one region, and you deploy to another, an error will be thrown!
-        id: cstorvVmImageId
-      }
-      osDisk: {
-        osType: 'Linux'
-        createOption: 'FromImage'
-        caching: 'ReadWrite'
-        // ANDY NOTE: might want to just select 'Delete' for these; but then log access is problematic..
-        deleteOption: cstorvDataDiskDeleteOption
-      }
-      dataDisks: [for j in range(0, cstorvVmNumDisks): {
-        name: '${cstorvName}-datadisk-${j}'
-        lun: j
-        createOption: 'Empty'
-        diskSizeGB: cstorvVmDiskSize
-        caching: 'ReadWrite'
-        // ANDY NOTE: see notes at variable declaration above
-        deleteOption: cstorvDataDiskDeleteOption
-      }]
-    }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          id: cstorcapturenic.id
-          // properties: {
-          //   primary: true
-          // }
-        }
-        // {
-        //   id: cstormgmtenic.id
-        //   properties: {
-        //     primary: true
-        //   }
-        // }
-      ]
-    }
-
-    osProfile: {
-      computerName: cstorvName
-      adminUsername: adminUser
-      adminPassword: sshPublicKey
-      linuxConfiguration: linuxConfiguration
-      customData: base64(cvuv_cloud_init)
-    }
-  }
-  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? tags['Microsoft.Compute/virtualMachines'] : null
 }
 
 resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = {
@@ -861,142 +723,4 @@ resource vmssevents 'Microsoft.EventGrid/systemTopics@2022-06-15' = {
   location: 'global'
   tags: {}
   name: 'vmss-events'
-}
-
-// resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
-//   name: 'cpacketappliances'
-//   kind: 'functionapp,linux,container'
-//   location: location
-//   properties: {
-//     siteConfig: {
-//       linuxFxVersion: 'DOCKER|cPacketNetworks/registerappliances:0.0.2'
-//       functionAppScaleLimit: 30
-//       minimumElasticInstanceCount: 0
-//     }
-//     storageAccountRequired: false
-//   }
-//   identity: {
-//     type: 'None'
-//   }
-// }
-
-resource cpacketappliances 'Microsoft.Web/sites@2022-09-01' = {
-  name: functionAppName
-  kind: 'functionapp,linux'
-  location: location
-  // tags: {
-  //   owner: 'cpacket@cpacketnetworks.com'
-  // }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    // name: 'cpacketappliances'
-    enabled: true
-    // adminEnabled: true
-    // siteProperties: {
-    //   metadata: null
-    //   properties: [
-    //     {
-    //       name: 'LinuxFxVersion'
-    //       value: 'Python|3.10'
-    //     }
-    //     {
-    //       name: 'WindowsFxVersion'
-    //       value: null
-    //     }
-    //   ]
-    //   appSettings: null
-    // }
-    // csrs: []
-    // hostNameSslStates: [
-    //   {
-    //     name: 'cpacketappliances.azurewebsites.net'
-    //     sslState: 'Disabled'
-    //     ipBasedSslState: 'NotConfigured'
-    //     hostType: 'Standard'
-    //   }
-    //   {
-    //     name: 'cpacketappliances.scm.azurewebsites.net'
-    //     sslState: 'Disabled'
-    //     ipBasedSslState: 'NotConfigured'
-    //     hostType: 'Repository'
-    //   }
-    // ]
-    serverFarmId: hostplan.id
-    reserved: true
-    isXenon: false
-    hyperV: false
-    // storageRecoveryDefaultState: 'Running'
-    // contentAvailabilityState: 'Normal'
-    // runtimeAvailabilityState: 'Normal'
-    // dnsConfiguration: {}
-    vnetRouteAllEnabled: true
-    // vnetImagePullEnabled: false
-    vnetContentShareEnabled: false
-    siteConfig: {
-      numberOfWorkers: 1
-      linuxFxVersion: 'Python|3.10'
-      acrUseManagedIdentityCreds: false
-      alwaysOn: false
-      http20Enabled: false
-      functionAppScaleLimit: 0
-      minimumElasticInstanceCount: 1
-      appSettings: [
-        {
-          name: 'APPLIANCE_HTTP_BASIC_AUTH_PASSWORD'
-          value: cpacketPassword
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${cpacketappliancesStorage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${cpacketappliancesStorage.listKeys().keys[0].value}'
-        }
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: cpacketappliancesMonitoring.properties.InstrumentationKey // Is this correct?
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'python'
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '0'
-        }
-      ]
-    }
-    // deploymentId: 'cpacketappliances'
-    // sku: 'ElasticPremium'
-    scmSiteAlsoStopped: false
-    clientAffinityEnabled: false
-    clientCertEnabled: false
-    clientCertMode: 'Required'
-    hostNamesDisabled: false
-    // vnetBackupRestoreEnabled: false
-    // customDomainVerificationId: 'E9894CA4C1882ED2CD721B3E6BED48800A7C9E248560A3D805E49D787E2B4796'
-    // kind: 'functionapp,linux'
-    // inboundIpAddress: '20.119.136.11'
-    // possibleInboundIpAddresses: '20.119.136.11'
-    // ftpUsername: 'cpacketappliances\\$cpacketappliances'
-    // ftpsHostName: 'ftps://waws-prod-bn1-199.ftp.azurewebsites.windows.net/site/wwwroot'
-    containerSize: 1536
-    dailyMemoryTimeQuota: 0
-    // siteDisabledReason: 0
-    // homeStamp: 'waws-prod-bn1-199'
-    httpsOnly: true
-    // endToEndEncryptionEnabled: false
-    redundancyMode: 'None'
-    // privateEndpointConnections: []
-    publicNetworkAccess: 'Enabled'
-    // eligibleLogCategories: 'FunctionAppLogs'
-    // inFlightFeatures: []
-    storageAccountRequired: false
-    virtualNetworkSubnetId: functionssubnet.id
-    keyVaultReferenceIdentity: 'SystemAssigned'
-    // defaultHostNameScope: 'Global'
-  }
 }
