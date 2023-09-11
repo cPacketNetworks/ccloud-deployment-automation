@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.20.4.51522",
-      "templateHash": "10400535443598946908"
+      "version": "0.21.1.54444",
+      "templateHash": "3853059695408489438"
     }
   },
   "parameters": {
@@ -692,11 +692,23 @@
             },
             {
               "name": "AzureWebJobsStorage",
-              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', reference(resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances'), '2022-09-01', 'full'), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances'), '2022-09-01').keys[0].value)]"
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', 'cpacketappliances', environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', 'cpacketappliances'), '2022-09-01').keys[0].value)]"
             },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
               "value": "[reference(resourceId('Microsoft.Insights/components', 'cpacketappliances'), '2020-02-02').InstrumentationKey]"
+            },
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "0"
             }
           ]
         },
