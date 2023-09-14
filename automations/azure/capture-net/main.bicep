@@ -1,16 +1,14 @@
-/*
-  Purpose:
-  Deploy the resources for the UI based inputs that are gathered/defined in the
-  associated createUIDefinition.json.
+/* 
+Purpose: Deploys the resources for the UI based inputs that are gathered/defined in the associated createUIDefinition.json.
 */
 
-//////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Parameters - start
-// These are passed in from createUIDefinition.json as the template's "payload" - this is the interactive application that runs
-// in the context of the Azure portal. 
-// see the "outputs" section of createUIDefinition.json
+// These are passed in from createUIDefinition.json as the template's "payload".
+// This is the interactive application that runs in the context of the Azure portal. 
+// See the "outputs" section of createUIDefinition.json
 //
-// These can also be passed in from the command line when running with the Azure CLI (az cli)
+// These can also be passed in from the command line when running with the Azure CLI:
 //
 // az deployment group create \
 //   --name "$deployment" \
@@ -21,26 +19,11 @@
 //
 // where $parameters is a JSON file containing the parameters to pass in
 
-// param subscriptionId string
-// param tenantId string
-// param ResourceGroup string
-// param cstorvVmImageLocation string
-// param cstorvVmImangeName string
-// param cvuvVmImageLocation string
-// param cvuvVmImageName string
-// param TESTexistingVM string
-// param TESTexistingNIC string
-// param cclearvVmImageLocation string
-// param cclearvVmImageName string
-
-@secure()
-param cpacketPassword string
-
 param location string
 
 param deploymentId string
-param adminUser string
 param sshPublicKey string
+param adminUser string = 'ubuntu'
 param virtualNetwork object
 
 param cclearvName string = 'cClear-V'
@@ -54,6 +37,14 @@ param cvuvVmImageId string
 param vmssMin int
 param vmssMax int
 
+param cstorvEnable bool
+param cstorvName string
+param cstorvVmImageId string
+param cstorvVmSize string
+param cstorvVmNumDisks int = 2
+param cstorvVmDiskSize int = 500
+param cstorvDataDiskDeleteOption string = 'Detach'
+
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
 
@@ -61,15 +52,15 @@ param downstreamTools string
 param tags object
 
 // Parameters - end
-//////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Variables - start
 
 // compute the subnet IDs depending on whether they exist.
 var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? monitoringsubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
 
-// ANDY NOTE: TODO: make sure 60 is a reasonable value - guessing between 60 and 300.
+// TODO: Ensure 60 is a reasonable value - guessing between 60 and 300.
 // see: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep#backendaddresspoolpropertiesformat
 // var lbDrainPeriodInSecs = 60
 // var lbIdleTimeoutInMinutes = 5
@@ -79,7 +70,6 @@ var lbProbeName = '${lbName}-probe'
 var lbProbeId = resourceId('Microsoft.Network/loadBalancers/probes', lbName, lbProbeName)
 
 var vmssInstRepairGracePeriod = 'PT10M'
-// var vmssInstRepairAction = 'Replace'
 
 // TODO: will probably need to add these to the UI and bring in as params.
 var autoscaleUpThreshhold = 10000000 // 10 MBytes
@@ -154,7 +144,6 @@ var cvuv_cloud_init = replace(cvuv_cloud_init_template, 'DOWNSTREAM_CAPTURE_IPS'
 //////////////////////////////////////////////////////////////////////////////
 // Resources - start
 
-// Network - Vnet and monitoring network. 
 // TODO: is there a way to condition on null values instead of the magic 'new' string?
 resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.name
@@ -211,16 +200,6 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
     backendAddressPools: [
       {
         name: lbBePoolName
-        // properties: {
-        //   // ANDY NOTE: might want to get this in future, however at this point on my subscription
-        //   // it generated a deployment error:
-        //   // code: 'SubscriptionNotRegisteredForFeature'
-        //   // message: 'Subscription 84a19d11-9f42-48f0-9ac9-ae0e4b9ca37f is not registered for feature Microsoft.Network/SLBAllowAdminStateChangeForConnectionDraining required to carry out the requested operation.'
-        //   //drainPeriodInSeconds: lbDrainPeriodInSecs
-
-        //   //ANDY: this generates an error at deployment time - location not valid in here - however it's in the docs!
-        //   //location: location
-        // }
       }
     ]
     frontendIPConfigurations: [
@@ -237,15 +216,14 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
       {
         name: '${lbName}-to-vmss'
         properties: {
-          // ANDY NOTE TODO: verify that this combination of ports and protocol seems to check the "high availability ports" checkbox in portal
+          // This combination of ports and protocol seems to check the "high availability ports" checkbox in the portal.
           frontendPort: 0
           backendPort: 0
           protocol: 'All'
 
-          // ANDY NOTE TODO: might want this -- more research needed
-          //idleTimeoutInMinutes: lbIdleTimeoutInMinutes
+          // TODO: might want this -- more research needed
+          // idleTimeoutInMinutes: lbIdleTimeoutInMinutes
 
-          // ANDY NOTE TODO: I believe we want this enabled
           enableTcpReset: true
 
           frontendIPConfiguration: {
@@ -354,17 +332,128 @@ resource cclearvm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': 'cclearv' }) : { 'cpacket:ApplianceType': 'cclearv' }
 }
 
-// docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#virtualmachinescalesetproperties
+resource cstorcapturenic 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
+  name: '${cstorvName}-cap-nic'
+  location: location
+  dependsOn: [
+    monitoringVnet
+  ]
+  properties: {
+    ipConfigurations: [
+      {
+        name: '${cstorvName}-cap-ipcfg'
+        properties: {
+          subnet: {
+            id: monitoringsubnet.id
+          }
+          privateIPAllocationMethod: 'Dynamic'
+        }
+      }
+    ]
+    enableAcceleratedNetworking: true
+  }
+  tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
+}
+
+// cStor-V management NIC resource -- for private/non-public networking
+// There seems to be an issue when creating VMs that don't have public networking/ip configs setup 
+// seems as though you have to create the nic and VM's separately see https://github.com/Azure/azure-rest-api-specs/issues/19446 
+// resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
+//   name: '${cstorvName}-mgmt-nic'
+//   location: location
+//   dependsOn: [
+//     vnet
+//   ]
+//   properties: {
+//     ipConfigurations: [
+//       {
+//         name: '${cstorvName}-mgmt-ipcfg'
+//         properties: {
+//           subnet: {
+//             id: mgmtsubnetId
+//           }
+//           privateIPAllocationMethod: 'Dynamic'
+//         }
+//       }
+//     ]
+//     enableAcceleratedNetworking: true
+//   }
+//   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
+// }
+
+resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnable) {
+
+  // There were errors about the vnet resource not found.
+  // This could be because there are no references to the vnet resource here -- the monsubnetId is a variable
+  dependsOn: [
+    monitoringVnet
+  ]
+
+  name: cstorvName
+  location: location
+  properties: {
+    hardwareProfile: {
+      vmSize: cstorvVmSize
+    }
+    storageProfile: {
+      imageReference: {
+        // This image is in a region, and if you deploy to another, an error will be thrown.
+        id: cstorvVmImageId
+      }
+      osDisk: {
+        osType: 'Linux'
+        createOption: 'FromImage'
+        caching: 'ReadWrite'
+        deleteOption: 'Delete'
+      }
+      dataDisks: [for j in range(0, cstorvVmNumDisks): {
+        name: '${cstorvName}-datadisk-${j}'
+        lun: j
+        createOption: 'Empty'
+        diskSizeGB: cstorvVmDiskSize
+        caching: 'ReadWrite'
+        deleteOption: cstorvDataDiskDeleteOption
+      }]
+    }
+    networkProfile: {
+      // placeholder for management nic eventually
+      // {
+      //   id: cstormgmtenic.id
+      //   properties: {
+      //     primary: true
+      //   }
+      // }
+      networkInterfaces: [
+        {
+          id: cstorcapturenic.id
+          // properties: {
+          //   primary: true
+          // }
+        }
+
+      ]
+    }
+
+    osProfile: {
+      computerName: cstorvName
+      adminUsername: adminUser
+      adminPassword: sshPublicKey
+      linuxConfiguration: linuxConfiguration
+      //customData: loadFileAsBase64('./cstorv-cloud-init.sh')
+    }
+  }
+  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? tags['Microsoft.Compute/virtualMachines'] : null
+}
+
+// https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#virtualmachinescalesetproperties
 // example: //example: https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/quick-create-bicep-windows?tabs=CLI
-// ANDY NOTE TODO: need to review with Jake, Dwane to ensure we're using consistent settings across 
-//            CLI, BICEP/UI flow and characterization tests
 resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
 
   // ANDY NOTE: I rean into a case that seemed like a race condition; deployment failed indicating that the loadbalancer didn't exist.
   // ...so I'm adding an explicit dependency here
   // docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/resource-dependencies
   // ALSO NOTE: I ran this many times __without__ adding this -- so its also hard to verify directly if this actually fixed it. 
-  // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added. you're welcome. 
+  // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added: you're welcome. 
   dependsOn: [
     monitoringVnet
     lb
@@ -381,55 +470,26 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
   }
 
   properties: {
-
-    //constrainedMaximumCapacity: true
-    //doNotRunExtensionsOnOverprovisionedVMs: true
-
-    //additionalCapabilities {}
-
     orchestrationMode: 'Uniform'
-
     overprovision: false
-
-    //ANDY NOTE: need to research...
-    //zoneBalance: true
-
-    //ANDY NOTE: need to research...
-    //singlePlacementGroup: true
-
-    // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#automaticrepairspolicy
+    // https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#automaticrepairspolicy
     automaticRepairsPolicy: {
       enabled: true
       gracePeriod: vmssInstRepairGracePeriod
-      // ANDY NOTE: using this value as 'Replace' throws an error saying it's invalid, docs say default is 'Replace' so leaving this 
-      // commented out. 
-      // repairAction: vmssInstRepairAction
     }
 
-    // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#scaleinpolicy
+    // https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#scaleinpolicy
     scaleInPolicy: {
-
-      // ANDY NOTE: in preview as of 07/17/23 apparently
-
-      // forceDeletion: false
-
       rules: [
         'Default'
       ]
-
     }
 
-    // ANDY NOTE: need to research...
-    // spotRestorePolicy: {}
-
     upgradePolicy: {
-      // ANDY NOTE TODO: we want to change this to Rolling - and match the settings Jake is using in CLI
+      // TODO: we may want to change this to Rolling - and match the settings Jake is using in CLI
       mode: 'Manual'
-
-      // ANDY NOTE: need to research more - discus with Jake/Martin
       // automaticOSUpgradePolicy: {}
       // rollingUpgradePolicy: {}
-
     }
 
     virtualMachineProfile: {
@@ -440,16 +500,14 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
         adminPassword: sshPublicKey
         linuxConfiguration: linuxConfiguration // TODO: workaround for https://github.com/Azure/bicep/issues/449
 
-        // ANDY NOTE TODO: not doing it this way as it requires to be run by CLI vs via Azure UI flow
-        // Needs to be generated above and passed in as a string variable
-        // customData: loadFileAsBase64('./cvuv-userdata.bash')
+        customData: base64(cvuv_cloud_init)
       }
 
       storageProfile: {
 
         // imageReference docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#imagereference
-        // ANDY NOTE: generic test with ubuntu
-        // get these field details from this command : az vm image list --output table --publisher Canonical --all
+        // Generic test with ubuntu...
+        // Get these field details from this command : az vm image list --output table --publisher Canonical --all
         // imageReference: {
         //   publisher: 'Canonical'
         //   offer: '0001-com-ubuntu-server-jammy'
@@ -457,33 +515,26 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
         //   version: 'latest'
         // }
 
-        // this uses the cvuv image from params!
         imageReference: {
-          // ANDY NOTE: if this image id is pointing to an image in another subscription an error will be thrown if "image sharing" is not enabled..
-          // ANDY NOTE: this this image is in one region, and you deploy to another, an error will be thrown!
+          // If the image id is pointing to an image in another subscription, an error will be thrown if "image sharing" is not enabled.
+          // If the image is in one region, and you deploy to another, an error will be thrown.
           id: cvuvVmImageId
         }
 
         osDisk: {
           createOption: 'FromImage'
-
-          // ANDY NOTE: this will throw and error saying this cannot be configured for VMSS
-          //           this is listed in the documentation as a valid option - so unclear why it throws an error..
-          // deleteOption: 'Delete'
-
-          // ANDY NOTE: leaving as a placeholder in case we want to experiment with larger osDisks at this level
+          // Leaving as a placeholder in case we want to experiment with larger osDisks at this level
           // diskSizeGB: 80
-
           osType: 'Linux'
         }
 
-        // ANDY NOTE: data disks not required by cvuv currently
+        // Data disks not required by cvuv currently
         // dataDisks: {}
       }
 
       networkProfile: {
         healthProbe: {
-          //ANDY NOTE: should be able to use the same health probe as the LB (as per discussion / observations with Dwane)
+          // Should be able to use the same health probe as the LB
           id: lbProbeId
         }
 
@@ -523,17 +574,16 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
 
 // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.insights/autoscalesettings?pivots=deployment-language-bicep
 // example: https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/quick-create-bicep-windows?tabs=CLI
-// ANDY NOTE: replicating most of Dwane's terraform settings in the following two terraform files
-//  https://github.com/cPacketNetworks/ccloud-cli/blob/46f4e7134db8f3f206321873f0e4cf54cbb3fe09/azure/scale.set.lb.tf/main.tf#L391
-//  https://github.com/cPacketNetworks/ccloud-cli/blob/46f4e7134db8f3f206321873f0e4cf54cbb3fe09/azure/scale.set.lb.tf/variables.tf#L133
+// https://github.com/cPacketNetworks/ccloud-cli/blob/46f4e7134db8f3f206321873f0e4cf54cbb3fe09/azure/scale.set.lb.tf/main.tf#L391
+// https://github.com/cPacketNetworks/ccloud-cli/blob/46f4e7134db8f3f206321873f0e4cf54cbb3fe09/azure/scale.set.lb.tf/variables.tf#L133
 resource vmssautoscalesettings 'Microsoft.Insights/autoscalesettings@2021-05-01-preview' = {
   name: '${deploymentId}-autoscale'
   location: location
-  //ANDY NOTE: using the *same* tags we used for the scale sets above
+  // using the *same* tags we used for the scale sets above
   tags: contains(tags, 'Microsoft.Compute/virtualMachineScaleSets') ? tags['Microsoft.Compute/virtualMachineScaleSets'] : null
 
   properties: {
-    //ANDY NOTE: an error is thrown if this name is not the same as the resource name above ...weird :)
+    // an error is thrown if this name is not the same as the resource name above ...weird.
     name: '${deploymentId}-autoscale'
     targetResourceUri: vmss.id
     enabled: true
@@ -628,24 +678,13 @@ resource hostplan 'Microsoft.Web/serverfarms@2022-09-01' = {
   kind: 'elastic'
   location: location
   properties: {
-    // serverFarmId: 14883
-    // name: 'cpacketappliances'
-    // workerSize: 'D1'
-    // workerSizeId: 3
-    // currentWorkerSize: 'D1'
-    // currentWorkerSizeId: 3
-    // currentNumberOfWorkers: 1
-    // planName: 'VirtualDedicatedPlan'
-    // computeMode: 'Dynamic' // or 'Dedicated'?
     perSiteScaling: false
     elasticScaleEnabled: true
     maximumElasticWorkerCount: 1
     isSpot: false
-    // kind: 'elastic'
     reserved: true
     isXenon: false
     hyperV: false
-    // mdmId: 'waws-prod-bn1-205_14883'
     targetWorkerCount: 0
     targetWorkerSizeId: 0
     zoneRedundant: false
@@ -699,16 +738,13 @@ resource cpacketappliancesMonitoring 'Microsoft.Insights/components@2020-02-02' 
   location: location
   tags: {}
   kind: 'web'
-  // etag: '"0700b04b-0000-0200-0000-64c15d2f0000"'
   properties: {
     Application_Type: 'web'
     Request_Source: 'rest'
     RetentionInDays: 90
-    // Retention: 'P90D'
     IngestionMode: 'ApplicationInsights'
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
-    // Ver: 'v2'
   }
 }
 

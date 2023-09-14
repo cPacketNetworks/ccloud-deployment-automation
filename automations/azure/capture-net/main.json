@@ -5,24 +5,22 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "16022375306535129800"
+      "templateHash": "6089758591183214043"
     }
   },
   "parameters": {
-    "cpacketPassword": {
-      "type": "securestring"
-    },
     "location": {
       "type": "string"
     },
     "deploymentId": {
       "type": "string"
     },
-    "adminUser": {
-      "type": "string"
-    },
     "sshPublicKey": {
       "type": "string"
+    },
+    "adminUser": {
+      "type": "string",
+      "defaultValue": "ubuntu"
     },
     "virtualNetwork": {
       "type": "object"
@@ -55,6 +53,30 @@
     },
     "vmssMax": {
       "type": "int"
+    },
+    "cstorvEnable": {
+      "type": "bool"
+    },
+    "cstorvName": {
+      "type": "string"
+    },
+    "cstorvVmImageId": {
+      "type": "string"
+    },
+    "cstorvVmSize": {
+      "type": "string"
+    },
+    "cstorvVmNumDisks": {
+      "type": "int",
+      "defaultValue": 2
+    },
+    "cstorvVmDiskSize": {
+      "type": "int",
+      "defaultValue": 500
+    },
+    "cstorvDataDiskDeleteOption": {
+      "type": "string",
+      "defaultValue": "Detach"
     },
     "downstreamTools": {
       "type": "string"
@@ -284,6 +306,87 @@
       ]
     },
     {
+      "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}-cap-nic', parameters('cstorvName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[format('{0}-cap-ipcfg', parameters('cstorvName'))]",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": true
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2021-03-01",
+      "name": "[parameters('cstorvName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('cstorvVmSize')]"
+        },
+        "storageProfile": {
+          "copy": [
+            {
+              "name": "dataDisks",
+              "count": "[length(range(0, parameters('cstorvVmNumDisks')))]",
+              "input": {
+                "name": "[format('{0}-datadisk-{1}', parameters('cstorvName'), range(0, parameters('cstorvVmNumDisks'))[copyIndex('dataDisks')])]",
+                "lun": "[range(0, parameters('cstorvVmNumDisks'))[copyIndex('dataDisks')]]",
+                "createOption": "Empty",
+                "diskSizeGB": "[parameters('cstorvVmDiskSize')]",
+                "caching": "ReadWrite",
+                "deleteOption": "[parameters('cstorvDataDiskDeleteOption')]"
+              }
+            }
+          ],
+          "imageReference": {
+            "id": "[parameters('cstorvVmImageId')]"
+          },
+          "osDisk": {
+            "osType": "Linux",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "deleteOption": "Delete"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('cstorvName')]",
+          "adminUsername": "[parameters('adminUser')]",
+          "adminPassword": "[parameters('sshPublicKey')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), parameters('tags')['Microsoft.Compute/virtualMachines'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "apiVersion": "2022-11-01",
       "name": "[parameters('vmssName')]",
@@ -314,7 +417,8 @@
             "computerNamePrefix": "[format('{0}-cvuv-', parameters('deploymentId'))]",
             "adminUsername": "[parameters('adminUser')]",
             "adminPassword": "[parameters('sshPublicKey')]",
-            "linuxConfiguration": "[variables('linuxConfiguration')]"
+            "linuxConfiguration": "[variables('linuxConfiguration')]",
+            "customData": "[base64(variables('cvuv_cloud_init'))]"
           },
           "storageProfile": {
             "imageReference": {

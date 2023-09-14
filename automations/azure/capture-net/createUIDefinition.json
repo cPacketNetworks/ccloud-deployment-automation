@@ -1,422 +1,451 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
-    "handler": "Microsoft.Azure.CreateUIDef",
-    "version": "0.1.2-preview",
-    "parameters": {
-        "config": {
-            "isWizard": true,
-            "basics": { 
-                "description": "# cCloud cVu-V Azure VMSS deployment tool \n This configuration application helps you deploy cPacket cVu-V packet brokers into an Azure Virtual Machine Scale Set (VMSS) \n # Prerequisites \n The following are required before starting this process: \n - x \n - y \n - z \n # Recommended \n - An azure VNet and subnet with minimum of /28 for deployment of the broker appliances. \n # See also \n - [cPacket's Website](https://www.cpacket.com)\n",
-                "subscription": {
-                    "constraints": {
-                        "validations": [
-                            {
-                                "permission": "Microsoft.Compute/virtualmachines/write",
-                                "message": "Must have write permission for the virtual machine."
-                            },
-                            {
-                                "permission":"Microsoft.Compute/virtualMachineScaleSets/write",
-                                "message": "Must have write permission for the Virtual Machine Scale Sets (VMSS)."
-                            },
-                            {
-                                "permission":"Microsoft.Network/networkSecurityGroups/write",
-                                "message": "Must have write permission to create a network security group"
-                            }
-                        ]
-                    },
-                    "resourceProviders": [
-                        "Microsoft.Compute",
-                        "Microsoft.Network"
-                    ]
-                },
-                "resourceGroup": {
-                    "allowExisting": true
-                }
-            }
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": true,
+      "basics": {
+        "description": "# cCloud cVu-V Azure VMSS deployment tool \n This configuration application helps you deploy cPacket cVu-V packet brokers into an Azure Virtual Machine Scale Set (VMSS) \n # Prerequisites \n The following are required before starting this process: \n - x \n - y \n - z \n # Recommended \n - An azure VNet and subnet with minimum of /28 for deployment of the broker appliances. \n # See also \n - [cPacket's Website](https://www.cpacket.com)\n",
+        "subscription": {
+          "constraints": {
+            "validations": [
+              {
+                "permission": "Microsoft.Compute/virtualmachines/write",
+                "message": "Must have write permission for the virtual machine."
+              },
+              {
+                "permission": "Microsoft.Compute/virtualMachineScaleSets/write",
+                "message": "Must have write permission for the Virtual Machine Scale Sets (VMSS)."
+              },
+              {
+                "permission": "Microsoft.Network/networkSecurityGroups/write",
+                "message": "Must have write permission to create a network security group"
+              }
+            ]
+          },
+          "resourceProviders": [
+            "Microsoft.Compute",
+            "Microsoft.Network"
+          ]
         },
-        "basics": [
-            {
-                "name": "generalSection",
-                "type": "Microsoft.Common.Section",
-                "label": "General items",
-                "elements": [
-                    {
-                        "name": "deploymentId",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Deployment ID prefix",
-                        "defaultValue": "cpacket-xyz",
-                        "toolTip": "The deploymend id value is added as a prefix to resources created to make then easier to identify and manage",
-                        "constraints": {
-                            "required": true
-                        },
-                        "visible": true
-                    },
-                    {
-                        "name": "adminUserName",
-                        "type": "Microsoft.Compute.UserNameTextBox",
-                        "label": "Admin user name for VMs",
-                        "defaultValue": "ubuntu",
-                        "toolTip": "This is the local admin user that will be created for the VMs that are deployed",
-                        "osPlatform": "Linux",
-                        "constraints": {
-                            "required": true
-                        }
-                    },
-                    {
-                        "name": "credentials",
-                        "type": "Microsoft.Compute.CredentialsCombo",
-                        "label": {
-                          "authenticationType": "Authentication type",
-                          "password": "Password",
-                          "confirmPassword": "Confirm password",
-                          "sshPublicKey": "SSH public key"
-                        },
-                        "toolTip": {
-                            "authenticationType": "Authentication Type for the Virtual Machines",
-                            "password": "Password for the VMs that are deployed",
-                            "sshPublicKey": "SSH Public Key for the VMs that are deployed"
-                        },
-                        "constraints": {
-                          "required": true
-                        },
-                        "options": {
-                          "hideConfirmation": false,
-                          "hidePassword": true
-                        },
-                        "osPlatform": "Linux",
-                        "visible": true
-                    }
-                ]
-            },
-            {
-                "name": "additionalInfoSection",
-                "type": "Microsoft.Common.Section",
-                "label": "Additional Info",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "additionalInfoText",
-                        "type": "Microsoft.Common.TextBlock",
-                        "visible": true,
-                        "options": {
-                          "text": "This is a placeholder TextBlock.",
-                          "link": {
-                            "label": "link to cpacket",
-                            "uri": "https://www.cpacket.com"
-                          }
-                        }
-                    }                  
-                ]
-            },
-            {
-                "name": "additionalInfoSection2",
-                "type": "Microsoft.Common.Section",
-                "label": "Additional Info 2",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "additionalInfoText2",
-                        "type": "Microsoft.Common.TextBlock",
-                        "visible": true,
-                        "options": {
-                          "text": "This is a placeholder TextBlock 2.",
-                          "link": {
-                            "label": "link to cpacket 2",
-                            "uri": "https://www.cpacket.com"
-                          }
-                        }
-                    }                  
-                ]
-            }
-        ],
-        "steps": [ 
-            {
-                "name": "networkSection",
-                "type": "Microsoft.Common.Section",
-                "label": "Network Configuration",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "virtualNetwork",
-                        "type": "Microsoft.Network.VirtualNetworkCombo",
-                        "visible": true,
-                        "label": {
-                            "virtualNetwork": "Virtual network",
-                            "subnets": "Subnets"
-                        },
-                        "toolTip": {
-                            "virtualNetwork": "Select a VNET to use or create one",
-                            "subnets": "A subnet with at least a /28 prefix is required"
-                        },
-                        "defaultValue": {
-                            "name": "[concat(basics('generalSection').deploymentId,'-vnet')]",
-                            "addressPrefixSize": "/16"
-                        },
-                        "constraints": {
-                            "minAddressPrefixSize": "/21"
-                        },
-                        "options": {
-                            "hideExisting": false
-                        },
-                        "subnets": {
-                            "monitoringSubnet": {
-                                "label": "Monitoring subnet",
-                                "defaultValue": {
-                                    "name": "monitor-subnet",
-                                    "addressPrefixSize": "/24"
-                                },
-                                "constraints": {
-                                    "required": true,
-                                    "minAddressPrefixSize": "/28",
-                                    "minAddressCount": 10,
-                                    "requireContiguousAddresses": false
-                                }
-                            },
-                            "functionsSubnet": {
-                                "label": "Azure Functions App subnet",
-                                "defaultValue": {
-                                    "name": "functions-subnet",
-                                    "addressPrefixSize": "/24"
-                                },
-                                "constraints": {
-                                    "required": true,
-                                    "minAddressPrefixSize": "/28",
-                                    "minAddressCount": 10,
-                                    "requireContiguousAddresses": false
-                                }
-                            }
-                        }
-                    }
-                ]
-            },
-            {
-                "name": "cvuvSection",
-                "type": "Microsoft.Common.Section",
-                "label": "cVu-V configuration",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "lbName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Load balancer name",
-                        "toolTip": "This Load Balancer is used to receive traffic that is then directed to VMs in the scale set",
-                        "defaultValue": "[concat(basics('generalSection').deploymentId,'-loadbalancer')]",
-                        "constraints": {
-                            "required": true,
-                            "regex": "^[a-z0-9A-Z-]{3,79}$",
-                            "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
-                        }
-                    },
-                    {
-                        "name": "vmssName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Scale set name",
-                        "toolTip": "This scale set (VMSS) holds the VMs that handle traffic from the Load balancer.",
-                        "defaultValue": "[concat(basics('generalSection').deploymentId,'-scaleset')]",
-                        "constraints": {
-                            "required": true,
-                            "regex": "^[a-z0-9A-Z-]{3,79}$",
-                            "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
-                        }
-                    },
-                    {
-                        "name": "cvuvVmImageSelector",
-                        "type": "Microsoft.Solutions.ResourceSelector",
-                        "label": "Select a cVu-V image",
-                        "toolTip": "VMs in the scale set will be launched from this image",
-                        "resourceType": "Microsoft.Compute/images",
-                        "options": {
-                            "filter": {
-                                "subscription": "onBasics",
-                                "location": "[location()]"
-                            }
-                        }
-                    },
-                    {
-                        "name": "vmssVmSize",
-                        "type": "Microsoft.Compute.SizeSelector",
-                        "label": "Size",
-                        "toolTip": "",
-                        "recommendedSizes": [
-                            "Standard_D4_v5",
-                            "Standard_D8_v5"
-                        ],
-                        "options": {
-                            "hideDiskTypeFilter": false
-                        },
-                        "osPlatform": "Linux",
-                        "imageReference": {
-                            "publisher": "Canonical",
-                            "offer": "UbuntuServer",
-                            "sku": "20.04-LTS"
-                        },
-                        "count": 1,
-                        "visible": true
-                    },
-                    {
-                        "name": "vmssMin",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Min VM count",
-                        "placeholder": "",
-                        "defaultValue": "3",
-                        "toolTip": "The minimum number of VMs to have running in the scale set",
-                        "visible": true
-                    },
-                    {
-                        "name": "vmssMax",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Max VM count",
-                        "placeholder": "",
-                        "defaultValue": "5",
-                        "toolTip": "The maximum number of VMs to scale to.",
-                        "visible": true
-                    },
-                    {
-                        "name": "vmssDsTools",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "Downstream tools",
-                        "placeholder": "",
-                        "defaultValue": "10.12.14.16",
-                        "toolTip": "Downstream tool to send packets to (VXLAN)",
-                        "visible": true,
-						"constraints": {
-							"required": true
-						}
-                    },
-                    {
-                        "name": "TESTexistingVM",
-                        "type": "Microsoft.Solutions.ResourceSelector",
-                        "label": "TEST Existing VM",
-                        "resourceType": "Microsoft.Compute/virtualMachines",
-                        "options": {
-                            "filter": {
-                              "subscription": "onBasics",
-                              "location": "onBasics"
-                            }                      
-                        }
-                    },
-                    {
-                        "name": "TESTexistingNIC",
-                        "type": "Microsoft.Solutions.ResourceSelector",
-                        "label": "TEST Existing NIC",
-                        "resourceType": "Microsoft.Network/networkInterfaces",
-                        "options": {
-                            "filter": {
-                              "subscription": "onBasics",
-                              "location": "onBasics"
-                            }                      
-                        }
-                    }
-                ]
-            },
-            {
-                "name": "cclearvSection",
-                "type": "Microsoft.Common.Section",
-                "label": "cClear-V configuration",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "cclearvName",
-                        "type": "Microsoft.Common.TextBox",
-                        "label": "cClear-V Name",
-                        "toolTip": "This cClear-V appliance provides management and dashboard features to your cPacket deployment",
-                        "defaultValue": "[concat(basics('generalSection').deploymentId,'-cclearv')]",
-                        "constraints": {
-                            "required": false,
-                            "regex": "^[a-z0-9A-Z-]{3,79}$",
-                            "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
-                        }
-                    },
-                    {
-                        "name": "cclearvVmImageSelector",
-                        "type": "Microsoft.Solutions.ResourceSelector",
-                        "label": "Select a cClear-V Image",
-                        "toolTip": "The cClear-V will be launched from this image",
-                        "resourceType": "Microsoft.Compute/images",
-                        "options": {
-                            "filter": {
-                                "subscription": "onBasics",
-                                "location": "[location()]"
-                            }
-                        }
-                    }
-				]
-            },
-            {
-                "name": "tagsSection",
-                "type": "Microsoft.Common.Section",
-                "label": "Tags",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "tagsByResource",
-                        "type": "Microsoft.Common.TagsByResource",
-                        "resources": [
-                            "Microsoft.Network/virtualNetworks",
-                            "Microsoft.Network/networkInterfaces",
-                            "Microsoft.Storage/storageAccounts",
-                            "Microsoft.Compute/virtualMachines",
-                            "Microsoft.Compute/disks",
-                            "Microsoft.Compute/virtualMachineScaleSets",
-                            "Microsoft.Network/loadBalancers",
-                            "Microsoft.Insights/actionGroups"
-                        ]
-                    }
-                ]
-            },
-            {
-                "name": "httpBasicAuthSection",
-                "type": "Microsoft.Common.Section",
-                "label": "HTTP Basic Authentication",
-                "visible": true,
-                "elements": [
-                    {
-                        "name": "cPacketPassword",
-                        "type": "Microsoft.Common.PasswordBox",
-                        "label": {
-                          "password": "Password",
-                          "confirmPassword": "Confirm password"
-                        },
-                        "toolTip": "The password for the cPacket user",
-                        "constraints": {
-                          "required": true,
-                          "regex": "^[a-zA-Z0-9]{8,}$",
-                          "validationMessage": "Password must be at least 8 characters long, contain only numbers and letters"
-                        },
-                        "options": {
-                          "hideConfirmation": false
-                        },
-                        "visible": true
-                      }
-                ]
-            }
-        ],
-        "outputs": { 
-            "subscriptionId": "[subscription().subscriptionId]",
-            "tenantId": "[subscription().tenantId]",
-            "resourceGroup": "[resourceGroup().name]",
-            "location": "[location()]",
-            "deploymentId":"[basics('generalSection').deploymentId]",
-            "adminUser": "[basics('generalSection').adminUserName]",
-            "sshPublicKey": "[basics('generalSection').credentials.sshPublicKey]",
-            "virtualNetwork": "[steps('networkSection').virtualNetwork]",
-            "lbName": "[steps('cvuvSection').lbName]",
-            "vmssName" : "[steps('cvuvSection').vmssName]",
-            "vmssVmSize": "[steps('cvuvSection').vmssVmSize]",
-            "cvuvVmImageId" : "[steps('cvuvSection').cvuvVmImageSelector.id]",
-            "cvuvVmImageLocation" : "[steps('cvuvSection').cvuvVmImageSelector.location]",
-            "cvuvVmImageName" : "[steps('cvuvSection').cvuvVmImageSelector.name]",
-            "vmssMin": "[int(steps('cvuvSection').vmssMin)]",
-            "vmssMax": "[int(steps('cvuvSection').vmssMax)]",
-            "downstreamTools": "[steps('cvuvSection').vmssDsTools]",
-            "TESTexistingVM": "[steps('cvuvSection').TESTexistingVM]",
-            "TESTexistingNIC": "[steps('cvuvSection').TESTexistingNIC]",
-            "cclearvName" : "[steps('cclearvSection').cclearvName]",
-            "cclearvVmImageId" : "[steps('cclearvSection').cclearvVmImageSelector.id]",
-            "cclearvVmImageLocation" : "[steps('cclearvSection').cclearvVmImageSelector.location]",
-            "cclearvVmImageName" : "[steps('cclearvSection').cclearvVmImageSelector.name]",
-            "cpacketPassword": "[steps('httpBasicAuthSection').cPacketPassword]",
-            "tags":"[steps('tagsSection').tagsByResource]"
+        "resourceGroup": {
+          "allowExisting": true
         }
+      }
+    },
+    "basics": [
+      {
+        "name": "generalSection",
+        "type": "Microsoft.Common.Section",
+        "label": "General items",
+        "elements": [
+          {
+            "name": "deploymentId",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Deployment ID prefix",
+            "defaultValue": "cpacket-xyz",
+            "toolTip": "The deploymend id value is added as a prefix to resources created to make then easier to identify and manage",
+            "constraints": {
+              "required": true
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "additionalInfoSection",
+        "type": "Microsoft.Common.Section",
+        "label": "Additional Info",
+        "visible": true,
+        "elements": [
+          {
+            "name": "additionalInfoText",
+            "type": "Microsoft.Common.TextBlock",
+            "visible": true,
+            "options": {
+              "text": "This is a placeholder TextBlock.",
+              "link": {
+                "label": "link to cpacket",
+                "uri": "https://www.cpacket.com"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "additionalInfoSection2",
+        "type": "Microsoft.Common.Section",
+        "label": "Additional Info 2",
+        "visible": true,
+        "elements": [
+          {
+            "name": "additionalInfoText2",
+            "type": "Microsoft.Common.TextBlock",
+            "visible": true,
+            "options": {
+              "text": "This is a placeholder TextBlock 2.",
+              "link": {
+                "label": "link to cpacket 2",
+                "uri": "https://www.cpacket.com"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "name": "networkSection",
+        "type": "Microsoft.Common.Section",
+        "label": "Network Configuration",
+        "visible": true,
+        "elements": [
+          {
+            "name": "virtualNetwork",
+            "type": "Microsoft.Network.VirtualNetworkCombo",
+            "visible": true,
+            "label": {
+              "virtualNetwork": "Virtual network",
+              "subnets": "Subnets"
+            },
+            "toolTip": {
+              "virtualNetwork": "Select a VNET to use or create one",
+              "subnets": "A subnet with at least a /28 prefix is required"
+            },
+            "defaultValue": {
+              "name": "[concat(basics('generalSection').deploymentId,'-vnet')]",
+              "addressPrefixSize": "/16"
+            },
+            "constraints": {
+              "minAddressPrefixSize": "/21"
+            },
+            "options": {
+              "hideExisting": false
+            },
+            "subnets": {
+              "monitoringSubnet": {
+                "label": "Monitoring subnet",
+                "defaultValue": {
+                  "name": "monitor-subnet",
+                  "addressPrefixSize": "/24"
+                },
+                "constraints": {
+                  "required": true,
+                  "minAddressPrefixSize": "/28",
+                  "minAddressCount": 10,
+                  "requireContiguousAddresses": false
+                }
+              },
+              "functionsSubnet": {
+                "label": "Azure Functions App subnet",
+                "defaultValue": {
+                  "name": "functions-subnet",
+                  "addressPrefixSize": "/24"
+                },
+                "constraints": {
+                  "required": true,
+                  "minAddressPrefixSize": "/28",
+                  "minAddressCount": 10,
+                  "requireContiguousAddresses": false
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "cstorvSection",
+        "type": "Microsoft.Common.Section",
+        "label": "cStor-V configuration",
+        "visible": true,
+        "elements": [
+          {
+            "name": "cstorvEnable",
+            "type": "Microsoft.Common.CheckBox",
+            "label": "Deploy cStor-V (optional)",
+            "defaultValue": false
+          },
+          {
+            "name": "cstorvName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "cStor-V Name",
+            "toolTip": "This cStor-V appliance will be configured to receive packets from the cVu-V packet brokers in the scale set.",
+            "defaultValue": "[concat(basics('generalSection').deploymentId,'-cstorv')]",
+            "constraints": {
+              "required": false,
+              "regex": "^[a-z0-9A-Z-]{3,79}$",
+              "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
+            }
+          },
+          {
+            "name": "cstorvVmImageSelector",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "Select a cStor-V Image",
+            "toolTip": "The cStor-V will be launched from this image",
+            "resourceType": "Microsoft.Compute/images",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "[location()]"
+              }
+            }
+          },
+          {
+            "name": "cstorvVmSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D4s_v5",
+              "Standard_D8s_v5"
+            ],
+            "options": {
+              "hideDiskTypeFilter": false
+            },
+            "osPlatform": "Linux",
+            "count": 1,
+            "visible": true
+          },
+          {
+            "name": "cstorvVmNumDisks",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Number of Data Disks",
+            "placeholder": "",
+            "defaultValue": "2",
+            "toolTip": "To calculate the number of cStor Disks needed, contact a cPacket representative.",
+            "constraints": {
+              "required": true,
+              "regex": "^[2-9]{1}$",
+              "validationMessage": "Only numeric characters are allowed, and the value must be 2-9."
+            },
+            "visible": true
+          },
+          {
+            "name": "cstorvVmDiskSize",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Size of Data Disks",
+            "placeholder": "",
+            "defaultValue": "500",
+            "toolTip": "To calculate the size of cStor Disks needed, contact a cPacket representative.",
+            "constraints": {
+              "required": true,
+              "regex": "^[1-9]{1}[0-9]{1,3}$",
+              "validationMessage": "Only numeric characters are allowed, and the value must be 100-9999."
+            },
+            "visible": true
+          }
+        ]
+      },
+      {
+        "name": "cvuvSection",
+        "type": "Microsoft.Common.Section",
+        "label": "cVu-V configuration",
+        "visible": true,
+        "elements": [
+          {
+            "name": "lbName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Load balancer name",
+            "toolTip": "This Load Balancer is used to receive traffic that is then directed to VMs in the scale set",
+            "defaultValue": "[concat(basics('generalSection').deploymentId,'-loadbalancer')]",
+            "constraints": {
+              "required": true,
+              "regex": "^[a-z0-9A-Z-]{3,79}$",
+              "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
+            }
+          },
+          {
+            "name": "vmssName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Scale set name",
+            "toolTip": "This scale set (VMSS) holds the VMs that handle traffic from the Load balancer.",
+            "defaultValue": "[concat(basics('generalSection').deploymentId,'-scaleset')]",
+            "constraints": {
+              "required": true,
+              "regex": "^[a-z0-9A-Z-]{3,79}$",
+              "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
+            }
+          },
+          {
+            "name": "cvuvVmImageSelector",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "Select a cVu-V image",
+            "toolTip": "VMs in the scale set will be launched from this image",
+            "resourceType": "Microsoft.Compute/images",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "[location()]"
+              }
+            }
+          },
+          {
+            "name": "vmssVmSize",
+            "type": "Microsoft.Compute.SizeSelector",
+            "label": "Size",
+            "toolTip": "",
+            "recommendedSizes": [
+              "Standard_D4_v5",
+              "Standard_D8_v5"
+            ],
+            "options": {
+              "hideDiskTypeFilter": false
+            },
+            "osPlatform": "Linux",
+            "imageReference": {
+              "publisher": "Canonical",
+              "offer": "UbuntuServer",
+              "sku": "20.04-LTS"
+            },
+            "count": 1,
+            "visible": true
+          },
+          {
+            "name": "vmssMin",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Min VM count",
+            "placeholder": "",
+            "defaultValue": "3",
+            "toolTip": "The minimum number of VMs to have running in the scale set",
+            "visible": true
+          },
+          {
+            "name": "vmssMax",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Max VM count",
+            "placeholder": "",
+            "defaultValue": "5",
+            "toolTip": "The maximum number of VMs to scale to.",
+            "visible": true
+          },
+          {
+            "name": "vmssDsTools",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Downstream tools",
+            "placeholder": "",
+            "defaultValue": "10.12.14.16",
+            "toolTip": "Downstream tool to send packets to (VXLAN)",
+            "visible": true,
+            "constraints": {
+              "required": true
+            }
+          },
+          {
+            "name": "TESTexistingVM",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "TEST Existing VM",
+            "resourceType": "Microsoft.Compute/virtualMachines",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "onBasics"
+              }
+            }
+          },
+          {
+            "name": "TESTexistingNIC",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "TEST Existing NIC",
+            "resourceType": "Microsoft.Network/networkInterfaces",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "onBasics"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "cclearvSection",
+        "type": "Microsoft.Common.Section",
+        "label": "cClear-V configuration",
+        "visible": true,
+        "elements": [
+          {
+            "name": "cclearvName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "cClear-V Name",
+            "toolTip": "This cClear-V appliance provides management and dashboard features to your cPacket deployment",
+            "defaultValue": "[concat(basics('generalSection').deploymentId,'-cclearv')]",
+            "constraints": {
+              "required": false,
+              "regex": "^[a-z0-9A-Z-]{3,79}$",
+              "validationMessage": "The name must be between 3 and 79 characters long and contain letters, numbers and hyphens only."
+            }
+          },
+          {
+            "name": "cclearvVmImageSelector",
+            "type": "Microsoft.Solutions.ResourceSelector",
+            "label": "Select a cClear-V Image",
+            "toolTip": "The cClear-V will be launched from this image",
+            "resourceType": "Microsoft.Compute/images",
+            "options": {
+              "filter": {
+                "subscription": "onBasics",
+                "location": "[location()]"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "tagsSection",
+        "type": "Microsoft.Common.Section",
+        "label": "Tags",
+        "visible": true,
+        "elements": [
+          {
+            "name": "tagsByResource",
+            "type": "Microsoft.Common.TagsByResource",
+            "resources": [
+              "Microsoft.Network/virtualNetworks",
+              "Microsoft.Network/networkInterfaces",
+              "Microsoft.Storage/storageAccounts",
+              "Microsoft.Compute/virtualMachines",
+              "Microsoft.Compute/disks",
+              "Microsoft.Compute/virtualMachineScaleSets",
+              "Microsoft.Network/loadBalancers",
+              "Microsoft.Insights/actionGroups"
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "subscriptionId": "[subscription().subscriptionId]",
+      "tenantId": "[subscription().tenantId]",
+      "resourceGroup": "[resourceGroup().name]",
+      "location": "[location()]",
+      "deploymentId": "[basics('generalSection').deploymentId]",
+      "sshPublicKey": "[basics('generalSection').credentials.sshPublicKey]",
+      "virtualNetwork": "[steps('networkSection').virtualNetwork]",
+      "cstorvEnable": "[steps('cstorvSection').cstorvEnable]",
+      "cstorvName": "[steps('cstorvSection').cstorvName]",
+      "cstorvVmImageId": "[steps('cstorvSection').cstorvVmImageSelector.id]",
+      "cstorvVmImageLocation": "[steps('cstorvSection').cstorvVmImageSelector.location]",
+      "cstorvVmImangeName": "[steps('cstorvSection').cstorvVmImageSelector.name]",
+      "cstorvVmSize": "[steps('cstorvSection').cstorvVmSize]",
+      "cstorvVmNumDisks": "[int(steps('cstorvSection').cstorvVmNumDisks)]",
+      "cstorvVmDiskSize": "[int(steps('cstorvSection').cstorvVmDiskSize)]",
+      "lbName": "[steps('cvuvSection').lbName]",
+      "vmssName": "[steps('cvuvSection').vmssName]",
+      "vmssVmSize": "[steps('cvuvSection').vmssVmSize]",
+      "cvuvVmImageId": "[steps('cvuvSection').cvuvVmImageSelector.id]",
+      "cvuvVmImageLocation": "[steps('cvuvSection').cvuvVmImageSelector.location]",
+      "cvuvVmImageName": "[steps('cvuvSection').cvuvVmImageSelector.name]",
+      "vmssMin": "[int(steps('cvuvSection').vmssMin)]",
+      "vmssMax": "[int(steps('cvuvSection').vmssMax)]",
+      "downstreamTools": "[steps('cvuvSection').vmssDsTools]",
+      "TESTexistingVM": "[steps('cvuvSection').TESTexistingVM]",
+      "TESTexistingNIC": "[steps('cvuvSection').TESTexistingNIC]",
+      "cclearvName": "[steps('cclearvSection').cclearvName]",
+      "cclearvVmImageId": "[steps('cclearvSection').cclearvVmImageSelector.id]",
+      "cclearvVmImageLocation": "[steps('cclearvSection').cclearvVmImageSelector.location]",
+      "cclearvVmImageName": "[steps('cclearvSection').cclearvVmImageSelector.name]",
+      "cpacketPassword": "[steps('httpBasicAuthSection').cPacketPassword]",
+      "tags": "[steps('tagsSection').tagsByResource]"
     }
+  }
 }
