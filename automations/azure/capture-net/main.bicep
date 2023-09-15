@@ -277,7 +277,7 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
   }
 }
 
-resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = {
+resource cclearNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = {
   name: cclearvName
   location: location
   dependsOn: [
@@ -289,7 +289,7 @@ resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = {
         name: 'management-ipcfg'
         properties: {
           subnet: {
-            id: monitoringSubnetId
+            id: monitoringSubnet.id
           }
           privateIPAllocationMethod: 'Dynamic'
         }
@@ -301,7 +301,7 @@ resource cclearvnic 'Microsoft.Network/networkInterfaces@2020-11-01' = {
 }
 
 // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachines?pivots=deployment-language-bicep
-resource cclearvm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
+resource cclearVm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   dependsOn: [
     monitoringVnet
   ]
@@ -335,7 +335,7 @@ resource cclearvm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
     networkProfile: {
       networkInterfaces: [
         {
-          id: cclearvnic.id
+          id: cclearNIC.id
         }
       ]
     }

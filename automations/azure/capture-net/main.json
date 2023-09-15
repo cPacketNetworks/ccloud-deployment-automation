@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "14405790161859656299"
+      "templateHash": "17593148134473096762"
     }
   },
   "parameters": {
@@ -259,7 +259,7 @@
             "name": "management-ipcfg",
             "properties": {
               "subnet": {
-                "id": "[variables('monitoringSubnetId')]"
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
               },
               "privateIPAllocationMethod": "Dynamic"
             }
