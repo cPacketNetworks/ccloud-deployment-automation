@@ -273,6 +273,13 @@
               "validationMessage": "Only numeric characters are allowed, and the value must be 100-9999."
             },
             "visible": true
+          },
+          {
+            "name": "cstorvCaptureIpAddress",
+            "type": "Microsoft.Common.TextBox",
+            "label": "IPV4 address for cStor-V capture interface",
+            "placeholder": "",
+            "defaultValue": "section('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]"
           }
         ]
       },
@@ -363,7 +370,7 @@
             "type": "Microsoft.Common.TextBox",
             "label": "Downstream tools",
             "placeholder": "",
-            "defaultValue": "10.12.14.16",
+            "defaultValue": "section('cstorvCaptureIpAddress').value",
             "toolTip": "Downstream tool to send packets to (VXLAN)",
             "visible": true,
             "constraints": {
