@@ -168,6 +168,17 @@ resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
   }
 }
 
+resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+  name: virtualNetwork.subnets.managementSubnet.name
+  parent: monitoringVnet
+  properties: {
+    addressPrefix: virtualNetwork.subnets.managementSubnet.addressPrefix
+    networkSecurityGroup: {
+      id: managementSecurityGroup.id
+    }
+  }
+}
+
 resource functionssubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.subnets.functionsSubnet.name
   parent: monitoringVnet
@@ -446,13 +457,13 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
 }
 
 // https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/virtualmachinescalesets?pivots=deployment-language-bicep#virtualmachinescalesetproperties
-// example: //example: https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/quick-create-bicep-windows?tabs=CLI
+// example: https://learn.microsoft.com/en-us/azure/virtual-machine-scale-sets/quick-create-bicep-windows?tabs=CLI
 resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
 
-  // ANDY NOTE: I rean into a case that seemed like a race condition; deployment failed indicating that the loadbalancer didn't exist.
-  // ...so I'm adding an explicit dependency here
+  // Encountered a case that seemed like a race condition: deployment failed indicating that the load balancer didn't exist.
+  // ... so adding an explicit dependency here.
   // docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/resource-dependencies
-  // ALSO NOTE: I ran this many times __without__ adding this -- so its also hard to verify directly if this actually fixed it. 
+  // ALSO NOTE: ran this many times __without__ adding this -- so its also hard to verify directly if this actually fixed it. 
   // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added: you're welcome. 
   dependsOn: [
     monitoringVnet
@@ -563,7 +574,30 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
               ]
             }
           }
-        ]
+          {
+            name: '${deploymentId}-cvuv-man-nic'
+
+            properties: {
+              primary: true
+              enableAcceleratedNetworking: true
+              enableIPForwarding: true
+              ipConfigurations: [
+                {
+                  name: '${deploymentId}-man-ipcfg'
+                  properties: {
+                    subnet: {
+                      id: managementSubnet.id
+                    }
+                    // loadBalancerBackendAddressPools: [
+                    //   {
+                    //     id: lbPoolId
+                    //   }
+                    // ]
+                  }
+                }
+              ]
+            }
+          } ]
 
       }
 

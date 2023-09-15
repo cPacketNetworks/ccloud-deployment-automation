@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "6089758591183214043"
+      "templateHash": "4194745847277844607"
     }
   },
   "parameters": {
@@ -135,6 +135,22 @@
       "name": "[format('{0}/{1}', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
       "properties": {
         "addressPrefix": "[parameters('virtualNetwork').subnets.monitoringSubnet.addressPrefix]",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('virtualNetwork').newOrExisting, 'new')]",
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}/{1}', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
+      "properties": {
+        "addressPrefix": "[parameters('virtualNetwork').subnets.managementSubnet.addressPrefix]",
         "networkSecurityGroup": {
           "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
         }
@@ -456,6 +472,24 @@
                     }
                   ]
                 }
+              },
+              {
+                "name": "[format('{0}-cvuv-man-nic', parameters('deploymentId'))]",
+                "properties": {
+                  "primary": true,
+                  "enableAcceleratedNetworking": true,
+                  "enableIPForwarding": true,
+                  "ipConfigurations": [
+                    {
+                      "name": "[format('{0}-man-ipcfg', parameters('deploymentId'))]",
+                      "properties": {
+                        "subnet": {
+                          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+                        }
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -463,6 +497,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]

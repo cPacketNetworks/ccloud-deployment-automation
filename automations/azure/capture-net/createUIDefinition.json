@@ -161,6 +161,19 @@
                   "requireContiguousAddresses": false
                 }
               },
+              "managementSubnet": {
+                "label": "Management subnet",
+                "defaultValue": {
+                  "name": "management-subnet",
+                  "addressPrefixSize": "/24"
+                },
+                "constraints": {
+                  "required": true,
+                  "minAddressPrefixSize": "/28",
+                  "minAddressCount": 10,
+                  "requireContiguousAddresses": false
+                }
+              },
               "functionsSubnet": {
                 "label": "Azure Functions App subnet",
                 "defaultValue": {
