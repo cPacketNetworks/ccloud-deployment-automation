@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "4194745847277844607"
+      "templateHash": "15271040856138902128"
     }
   },
   "parameters": {
@@ -136,11 +136,11 @@
       "properties": {
         "addressPrefix": "[parameters('virtualNetwork').subnets.monitoringSubnet.addressPrefix]",
         "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
@@ -596,6 +596,29 @@
               "sourcePortRange": "*",
               "destinationAddressPrefix": "*",
               "destinationPortRange": "443"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-02-01",
+      "name": "captureSecurityGroup",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-vxlan",
+            "properties": {
+              "priority": 100,
+              "protocol": "Udp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "4789"
             }
           }
         ]

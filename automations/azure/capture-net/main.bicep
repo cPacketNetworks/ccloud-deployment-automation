@@ -163,7 +163,7 @@ resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
   properties: {
     addressPrefix: virtualNetwork.subnets.monitoringSubnet.addressPrefix
     networkSecurityGroup: {
-      id: managementSecurityGroup.id
+      id: captureSecurityGroup.id
     }
   }
 }
@@ -701,6 +701,28 @@ resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-0
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
           destinationPortRange: '443'
+        }
+      }
+    ]
+  }
+}
+
+resource captureSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-02-01' = {
+  name: 'captureSecurityGroup'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'allow-vxlan'
+        properties: {
+          priority: 100
+          protocol: 'Udp'
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: '*'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '4789'
         }
       }
     ]
