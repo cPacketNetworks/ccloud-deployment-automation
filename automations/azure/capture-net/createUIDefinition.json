@@ -279,7 +279,8 @@
             "type": "Microsoft.Common.TextBox",
             "label": "IPV4 address for cStor-V capture interface",
             "placeholder": "",
-            "defaultValue": "section('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]",
+            "defaultValue": "[steps('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]]",
+            "toolTip": "Static IP address for cStor-V: ensure this is on the capture/monitoring subnet",
             "constraints": {
               "required": true,
               "regex": "^[1-9]{1}[0-9]{1,3}$",
@@ -376,7 +377,7 @@
             "type": "Microsoft.Common.TextBox",
             "label": "Downstream tools",
             "placeholder": "",
-            "defaultValue": "section('cstorvCaptureIpAddress').value",
+            "defaultValue": "[steps('cstorvSection').cstorvCaptureIpAddress]",
             "toolTip": "Downstream tool to send packets to (VXLAN)",
             "visible": true,
             "constraints": {
