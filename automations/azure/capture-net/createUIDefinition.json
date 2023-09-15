@@ -50,6 +50,30 @@
               "required": true
             },
             "visible": true
+          },
+          {
+            "name": "credentials",
+            "type": "Microsoft.Compute.CredentialsCombo",
+            "label": {
+              "authenticationType": "Authentication type",
+              "password": "Password",
+              "confirmPassword": "Confirm password",
+              "sshPublicKey": "SSH public key"
+            },
+            "toolTip": {
+              "authenticationType": "Authentication Type for the Virtual Machines",
+              "password": "Password for the VMs that are deployed",
+              "sshPublicKey": "SSH Public Key for the VMs that are deployed"
+            },
+            "constraints": {
+              "required": true
+            },
+            "options": {
+              "hideConfirmation": false,
+              "hidePassword": true
+            },
+            "osPlatform": "Linux",
+            "visible": true
           }
         ]
       },
