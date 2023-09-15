@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "15271040856138902128"
+      "templateHash": "13783973000022510506"
     }
   },
   "parameters": {
@@ -349,6 +349,32 @@
     },
     {
       "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}-mgmt-nic', parameters('cstorvName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[format('{0}-mgmt-ipcfg', parameters('cstorvName'))]",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": true
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[parameters('cstorvEnable')]",
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2021-03-01",
       "name": "[parameters('cstorvName')]",
@@ -385,7 +411,16 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
+              "properties": {
+                "primary": false
+              }
+            },
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
+              "properties": {
+                "primary": true
+              }
             }
           ]
         },
@@ -399,6 +434,7 @@
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), parameters('tags')['Microsoft.Compute/virtualMachines'], null())]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
