@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "13783973000022510506"
+      "templateHash": "3019181487178261451"
     }
   },
   "parameters": {
@@ -532,6 +532,7 @@
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.functionsSubnet.name)]",
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
@@ -689,7 +690,7 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2022-09-01",
-      "name": "cpacketappliances",
+      "name": "[format('ccloudapps{0}', parameters('deploymentId'))]",
       "sku": {
         "name": "Standard_LRS"
       },

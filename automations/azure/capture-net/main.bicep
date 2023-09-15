@@ -58,7 +58,7 @@ param tags object
 // Variables - start
 
 // compute the subnet IDs depending on whether they exist.
-var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? monitoringsubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
+var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? monitoringSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
 
 // TODO: Ensure 60 is a reasonable value - guessing between 60 and 300.
 // see: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep#backendaddresspoolpropertiesformat
@@ -157,7 +157,10 @@ resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (vir
   tags: contains(tags, 'Microsoft.Network/virtualNetworks') ? tags['Microsoft.Network/virtualNetworks'] : null
 }
 
-resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+resource monitoringSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+  dependsOn: [
+    monitoringVnet
+  ]
   name: virtualNetwork.subnets.monitoringSubnet.name
   parent: monitoringVnet
   properties: {
@@ -169,6 +172,9 @@ resource monitoringsubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
 }
 
 resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+  dependsOn: [
+    monitoringVnet
+  ]
   name: virtualNetwork.subnets.managementSubnet.name
   parent: monitoringVnet
   properties: {
@@ -179,7 +185,10 @@ resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
   }
 }
 
-resource functionssubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+resource functionsSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+  dependsOn: [
+    monitoringVnet
+  ]
   name: virtualNetwork.subnets.functionsSubnet.name
   parent: monitoringVnet
   properties: {
@@ -355,7 +364,7 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if 
         name: '${cstorvName}-cap-ipcfg'
         properties: {
           subnet: {
-            id: monitoringsubnet.id
+            id: monitoringSubnet.id
           }
           privateIPAllocationMethod: 'Dynamic'
         }
@@ -373,6 +382,7 @@ resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = 
   location: location
   dependsOn: [
     monitoringVnet
+    managementSubnet
   ]
   properties: {
     ipConfigurations: [
@@ -465,6 +475,9 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
   // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added: you're welcome. 
   dependsOn: [
     monitoringVnet
+    managementSubnet
+    functionsSubnet
+    monitoringSubnet
     lb
   ]
 
@@ -757,7 +770,7 @@ resource cpacketappliancesStorage 'Microsoft.Storage/storageAccounts@2022-09-01'
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  name: 'cpacketappliances'
+  name: 'ccloudapps${deploymentId}'
   location: location
   tags: {}
   properties: {
