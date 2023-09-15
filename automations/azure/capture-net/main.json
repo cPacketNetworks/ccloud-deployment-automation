@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "3019181487178261451"
+      "templateHash": "18331213278397308949"
     }
   },
   "parameters": {
@@ -512,9 +512,9 @@
               {
                 "name": "[format('{0}-cvuv-man-nic', parameters('deploymentId'))]",
                 "properties": {
-                  "primary": true,
+                  "primary": false,
                   "enableAcceleratedNetworking": true,
-                  "enableIPForwarding": true,
+                  "enableIPForwarding": false,
                   "ipConfigurations": [
                     {
                       "name": "[format('{0}-man-ipcfg', parameters('deploymentId'))]",

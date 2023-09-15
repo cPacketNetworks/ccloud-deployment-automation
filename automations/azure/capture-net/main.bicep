@@ -589,9 +589,9 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
             name: '${deploymentId}-cvuv-man-nic'
 
             properties: {
-              primary: true
+              primary: false
               enableAcceleratedNetworking: true
-              enableIPForwarding: true
+              enableIPForwarding: false
               ipConfigurations: [
                 {
                   name: '${deploymentId}-man-ipcfg'

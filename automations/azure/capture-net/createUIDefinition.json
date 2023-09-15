@@ -44,7 +44,7 @@
             "name": "deploymentId",
             "type": "Microsoft.Common.TextBox",
             "label": "Deployment ID prefix",
-            "defaultValue": "cpacket-xyz",
+            "defaultValue": "cpacket",
             "toolTip": "The deploymend id value is added as a prefix to resources created to make then easier to identify and manage",
             "constraints": {
               "required": true
@@ -151,7 +151,7 @@
               "monitoringSubnet": {
                 "label": "Monitoring subnet",
                 "defaultValue": {
-                  "name": "monitor-subnet",
+                  "name": "monitor",
                   "addressPrefixSize": "/24"
                 },
                 "constraints": {
@@ -164,7 +164,7 @@
               "managementSubnet": {
                 "label": "Management subnet",
                 "defaultValue": {
-                  "name": "management-subnet",
+                  "name": "management",
                   "addressPrefixSize": "/24"
                 },
                 "constraints": {
@@ -177,7 +177,7 @@
               "functionsSubnet": {
                 "label": "Azure Functions App subnet",
                 "defaultValue": {
-                  "name": "functions-subnet",
+                  "name": "functions",
                   "addressPrefixSize": "/24"
                 },
                 "constraints": {
