@@ -58,7 +58,7 @@ param tags object
 // Variables - start
 
 // compute the subnet IDs depending on whether they exist.
-var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? monitoringSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
+var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? captureSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
 
 // TODO: Ensure 60 is a reasonable value - guessing between 60 and 300.
 // see: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep#backendaddresspoolpropertiesformat
@@ -157,7 +157,7 @@ resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (vir
   tags: contains(tags, 'Microsoft.Network/virtualNetworks') ? tags['Microsoft.Network/virtualNetworks'] : null
 }
 
-resource monitoringSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
+resource captureSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.subnets.monitoringSubnet.name
   parent: monitoringVnet
   properties: {
@@ -170,7 +170,7 @@ resource monitoringSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
 
 resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   dependsOn: [
-    monitoringSubnet
+    captureSubnet
   ]
   name: virtualNetwork.subnets.managementSubnet.name
   parent: monitoringVnet
@@ -289,7 +289,7 @@ resource cclearNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = {
         name: 'management-ipcfg'
         properties: {
           subnet: {
-            id: monitoringSubnet.id
+            id: managementSubnet.id
           }
           privateIPAllocationMethod: 'Dynamic'
         }
@@ -361,7 +361,7 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if 
         name: '${cstorvName}-cap-ipcfg'
         properties: {
           subnet: {
-            id: monitoringSubnet.id
+            id: captureSubnet.id
           }
           privateIPAllocationMethod: 'Dynamic'
         }

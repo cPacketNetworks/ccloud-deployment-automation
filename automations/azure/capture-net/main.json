@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "17593148134473096762"
+      "templateHash": "13018955155735181494"
     }
   },
   "parameters": {
@@ -156,8 +156,8 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
@@ -259,7 +259,7 @@
             "name": "management-ipcfg",
             "properties": {
               "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
               },
               "privateIPAllocationMethod": "Dynamic"
             }
@@ -269,7 +269,7 @@
       },
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
@@ -533,10 +533,10 @@
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.functionsSubnet.name)]",
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
-        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
