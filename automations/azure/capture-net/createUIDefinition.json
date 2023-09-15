@@ -279,7 +279,7 @@
             "type": "Microsoft.Common.TextBox",
             "label": "IPV4 address for cStor-V capture interface",
             "placeholder": "",
-            "defaultValue": "[steps('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]]",
+            "defaultValue": "10.x.x.x",
             "toolTip": "Static IP address for cStor-V: ensure this is on the capture/monitoring subnet",
             "visible": "true"
           }
