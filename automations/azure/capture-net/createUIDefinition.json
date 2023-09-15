@@ -468,7 +468,6 @@
       "cclearvVmImageId": "[steps('cclearvSection').cclearvVmImageSelector.id]",
       "cclearvVmImageLocation": "[steps('cclearvSection').cclearvVmImageSelector.location]",
       "cclearvVmImageName": "[steps('cclearvSection').cclearvVmImageSelector.name]",
-      "cpacketPassword": "[steps('httpBasicAuthSection').cPacketPassword]",
       "tags": "[steps('tagsSection').tagsByResource]"
     }
   }
