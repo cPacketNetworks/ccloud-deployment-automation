@@ -158,9 +158,6 @@ resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (vir
 }
 
 resource monitoringSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
-  dependsOn: [
-    monitoringVnet
-  ]
   name: virtualNetwork.subnets.monitoringSubnet.name
   parent: monitoringVnet
   properties: {
@@ -173,7 +170,7 @@ resource monitoringSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
 
 resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   dependsOn: [
-    monitoringVnet
+    monitoringSubnet
   ]
   name: virtualNetwork.subnets.managementSubnet.name
   parent: monitoringVnet
@@ -187,7 +184,7 @@ resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
 
 resource functionsSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   dependsOn: [
-    monitoringVnet
+    managementSubnet
   ]
   name: virtualNetwork.subnets.functionsSubnet.name
   parent: monitoringVnet
@@ -380,10 +377,6 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if 
 resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
   name: '${cstorvName}-mgmt-nic'
   location: location
-  dependsOn: [
-    monitoringVnet
-    managementSubnet
-  ]
   properties: {
     ipConfigurations: [
       {
@@ -475,9 +468,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
   // ...that said, adding this did not throw any errors, and I verified that it is deploying with this dependsOn block added: you're welcome. 
   dependsOn: [
     monitoringVnet
-    managementSubnet
     functionsSubnet
-    monitoringSubnet
     lb
   ]
 
