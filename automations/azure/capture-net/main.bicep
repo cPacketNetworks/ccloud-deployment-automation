@@ -770,7 +770,7 @@ resource cpacketappliancesStorage 'Microsoft.Storage/storageAccounts@2022-09-01'
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
-  name: 'ccloudapps${deploymentId}'
+  name: 'ccloud${deploymentId}'
   location: location
   tags: {}
   properties: {

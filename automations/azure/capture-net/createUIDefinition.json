@@ -47,7 +47,9 @@
             "defaultValue": "cpacket",
             "toolTip": "The deploymend id value is added as a prefix to resources created to make then easier to identify and manage",
             "constraints": {
-              "required": true
+              "required": true,
+              "regex": "^[a-z0-9A-Z]{5,18}$",
+              "validationMessage": "The name must be between 5 and 18 characters long and contain letters and numbers only."
             },
             "visible": true
           },
@@ -138,7 +140,7 @@
               "subnets": "A subnet with at least a /28 prefix is required"
             },
             "defaultValue": {
-              "name": "[concat(basics('generalSection').deploymentId,'-vnet')]",
+              "name": "[basics('generalSection').deploymentId]",
               "addressPrefixSize": "/16"
             },
             "constraints": {

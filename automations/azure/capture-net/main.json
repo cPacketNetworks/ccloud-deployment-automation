@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "18331213278397308949"
+      "templateHash": "4191348235703702707"
     }
   },
   "parameters": {
@@ -690,7 +690,7 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2022-09-01",
-      "name": "[format('ccloudapps{0}', parameters('deploymentId'))]",
+      "name": "[format('ccloud{0}', parameters('deploymentId'))]",
       "sku": {
         "name": "Standard_LRS"
       },
