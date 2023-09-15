@@ -279,7 +279,13 @@
             "type": "Microsoft.Common.TextBox",
             "label": "IPV4 address for cStor-V capture interface",
             "placeholder": "",
-            "defaultValue": "section('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]"
+            "defaultValue": "section('networkSection').virtualNetwork.subnets.monitoringSubnet.addressPrefixes[0]",
+            "constraints": {
+              "required": true,
+              "regex": "^[1-9]{1}[0-9]{1,3}$",
+              "validationMessage": "Only numeric characters are allowed, and the value must be 100-9999."
+            },
+            "visible": "true"
           }
         ]
       },
