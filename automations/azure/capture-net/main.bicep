@@ -347,7 +347,7 @@ resource cclearVm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       linuxConfiguration: linuxConfiguration
     }
   }
-  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': cclearvName }) : { 'cpacket:ApplianceType': 'cclearv' }
+  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': cclearvName }) : { 'cpacket:ApplianceType': cclearvName }
 }
 
 resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {

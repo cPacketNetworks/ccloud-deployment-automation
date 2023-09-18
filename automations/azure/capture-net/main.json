@@ -320,7 +320,7 @@
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         }
       },
-      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', 'cclearv')), createObject('cpacket:ApplianceType', 'cclearv'))]",
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', parameters('cclearvName'))), createObject('cpacket:ApplianceType', parameters('cclearvName')))]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', parameters('cclearvName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
