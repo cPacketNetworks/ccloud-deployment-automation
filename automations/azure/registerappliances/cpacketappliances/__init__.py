@@ -74,7 +74,7 @@ def main(event: func.EventGridEvent):
         logging.info(f"no CVUVs found in {scale_set_name}")
         return
 
-    cclearv_instance = get_vm_by_tag(compute_client, appliance_type_key, appliance_type_value)
+    cclearv_instance = get_vm_by_tag(compute_client, appliance_type_key, appliance_type_value, resource_group_name)
     if cclearv_instance is None:
         logging.error(
             f"Failed to find cClear-V instance with tag {appliance_type_key}={appliance_type_value}: bailing"
@@ -380,10 +380,11 @@ def get_vm_by_tag(
     compute_client: azure.mgmt.compute.ComputeManagementClient,
     tag_name: str,
     tag_value: str,
+    resource_group_name: str,
 ) -> typing.Any:
 
     virtual_machines = []
-    for vm in compute_client.virtual_machines.list_all():
+    for vm in compute_client.virtual_machines.list(resource_group_name=resource_group_name):
         if (
             vm.tags is not None
             and tag_name in vm.tags
