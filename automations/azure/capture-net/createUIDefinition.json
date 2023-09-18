@@ -370,10 +370,10 @@
           {
             "name": "vmssDsTools",
             "type": "Microsoft.Common.TextBox",
-            "label": "Downstream tools",
+            "label": "Downstream destinations for VXLAN encapsulated traffic",
             "placeholder": "",
             "defaultValue": "[steps('cstorvSection').cstorvCaptureIpAddress]",
-            "toolTip": "Downstream tool to send packets to (VXLAN)",
+            "toolTip": "Comma separated list of IPV4 addresses",
             "visible": true,
             "constraints": {
               "required": true
