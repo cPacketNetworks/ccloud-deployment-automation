@@ -694,19 +694,6 @@ resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-0
           destinationPortRange: '22'
         }
       }
-      {
-        name: 'allow-https'
-        properties: {
-          priority: 110
-          protocol: 'Tcp'
-          access: 'Allow'
-          direction: 'Inbound'
-          sourceAddressPrefix: '*'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '443'
-        }
-      }
     ]
   }
 }
