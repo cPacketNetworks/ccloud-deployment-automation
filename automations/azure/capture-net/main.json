@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "11589406580195514815"
+      "templateHash": "14770505556580090326"
     }
   },
   "parameters": {
@@ -625,19 +625,6 @@
               "sourcePortRange": "*",
               "destinationAddressPrefix": "*",
               "destinationPortRange": "22"
-            }
-          },
-          {
-            "name": "allow-https",
-            "properties": {
-              "priority": 110,
-              "protocol": "Tcp",
-              "access": "Allow",
-              "direction": "Inbound",
-              "sourceAddressPrefix": "*",
-              "sourcePortRange": "*",
-              "destinationAddressPrefix": "*",
-              "destinationPortRange": "443"
             }
           }
         ]
