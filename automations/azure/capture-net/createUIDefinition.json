@@ -483,6 +483,7 @@
       "cvuvVmImageId": "[steps('cvuvSection').cvuvVmImageSelector.id]",
       "cvuvVmImageLocation": "[steps('cvuvSection').cvuvVmImageSelector.location]",
       "cvuvVmImageName": "[steps('cvuvSection').cvuvVmImageSelector.name]",
+      "cstorvCaptureIpAddress": "[steps('cvuvSection').cstorvCaptureIpAddress]",
       "vmssMin": "[int(steps('cvuvSection').vmssMin)]",
       "vmssMax": "[int(steps('cvuvSection').vmssMax)]",
       "downstreamTools": "[steps('cvuvSection').vmssDsTools]",

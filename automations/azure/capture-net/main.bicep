@@ -44,6 +44,7 @@ param cstorvVmSize string
 param cstorvVmNumDisks int = 2
 param cstorvVmDiskSize int = 500
 param cstorvDataDiskDeleteOption string = 'Detach'
+param cstorvCaptureIpAddress string
 
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
@@ -360,10 +361,11 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if 
       {
         name: '${cstorvName}-cap-ipcfg'
         properties: {
+          privateIPAllocationMethod: 'Static'
+          privateIPAddress: cstorvCaptureIpAddress
           subnet: {
             id: captureSubnet.id
           }
-          privateIPAllocationMethod: 'Dynamic'
         }
       }
     ]

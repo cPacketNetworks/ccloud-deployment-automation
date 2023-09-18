@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.21.1.54444",
-      "templateHash": "13018955155735181494"
+      "templateHash": "11589406580195514815"
     }
   },
   "parameters": {
@@ -77,6 +77,9 @@
     "cstorvDataDiskDeleteOption": {
       "type": "string",
       "defaultValue": "Detach"
+    },
+    "cstorvCaptureIpAddress": {
+      "type": "string"
     },
     "downstreamTools": {
       "type": "string"
@@ -334,10 +337,11 @@
           {
             "name": "[format('{0}-cap-ipcfg', parameters('cstorvName'))]",
             "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('cstorvCaptureIpAddress')]",
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
-              },
-              "privateIPAllocationMethod": "Dynamic"
+              }
             }
           }
         ],
