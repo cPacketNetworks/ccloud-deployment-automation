@@ -1,4 +1,4 @@
-# Verification and sythetic traffic
+# Verification and synthetic traffic
 
 After the capture network is deployed, you can direct traffic to it.
 To verify that the capture network is working, you can set up test infrastructure to generate synthetic traffic and direct it to the capture network load balancer.
