@@ -77,3 +77,5 @@ func azure functionapp publish cpacketappliancesdoc --python
 The end result should be that the function (as opposed to the Function App) should be listed in the Function App’s overview page.
 The function code does not need to be named the same as the Function App.
 (There could be many functions in a Function App.)
+
+![Function code uploaded](/static-assets/registration/upload-success.png "Function code uploaded")
