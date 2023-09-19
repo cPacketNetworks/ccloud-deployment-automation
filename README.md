@@ -12,6 +12,7 @@ The content is meant to supplement officially released cPacket documentation and
 - [Copy the appliances into your Azure subscription](/automations/azure/ccloud-azure-images/README.md)
 - [Deploy the appliances into Azure](/automations/azure/capture-net/README.md)
 - [Appliance registration via Azure Function App](docs/registration.md)
+- [Verification and synthetic traffic](/automations/azure/synthetic-traffic/README.md)
 
 ## Installing with Terraform
 
