@@ -79,3 +79,13 @@ The function code does not need to be named the same as the Function App.
 (There could be many functions in a Function App.)
 
 ![Function code uploaded](/static-assets/registration/upload-success.png "Function code uploaded")
+
+## Event Subscription
+
+After the Function App is created and configured, create an Event Grid System topic and a subscription within the topic to trigger the function when Event Grid events occur in the resource group.
+
+![Event Grid system topic](/static-assets/registration/event-subscription.png "Event Grid system topic")
+
+This allows the function to be triggered when cVu-V instances are added or removed from the VMSS.
+
+![Event Grid subscription](/static-assets/registration/direct-events-to-function.png "Subscribe to events")
