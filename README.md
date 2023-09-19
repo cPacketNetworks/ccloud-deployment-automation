@@ -15,7 +15,7 @@ The content is meant to supplement officially released cPacket documentation and
 
 ## Installing with Terraform
 
-- [Deploying a monitoring network with Terraform](/automations/azure/terraform/README.md)
+- [Deploying a monitoring network with Terraform](/automations/azure/capture.tf/README.md)
 
 ## Contributing and reporting bugs
 
