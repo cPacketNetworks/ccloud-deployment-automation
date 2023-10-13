@@ -1,8 +1,5 @@
-/* 
-Purpose: Deploys the resources for the UI based inputs that are gathered/defined in the associated createUIDefinition.json.
-*/
+// Purpose: Deploys the resources for the UI based inputs that are gathered/defined in the associated createUIDefinition.json.
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Parameters - start
 // These are passed in from createUIDefinition.json as the template's "payload".
 // This is the interactive application that runs in the context of the Azure portal. 
@@ -61,7 +58,7 @@ param tags object
 // compute the subnet IDs depending on whether they exist.
 var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? captureSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
 
-// TODO: Ensure 60 is a reasonable value - guessing between 60 and 300.
+// Ensure 60 is a reasonable value - guessing between 60 and 300.
 // see: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep#backendaddresspoolpropertiesformat
 // var lbDrainPeriodInSecs = 60
 // var lbIdleTimeoutInMinutes = 5
@@ -296,7 +293,7 @@ resource cclearNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = {
         }
       }
     ]
-    enableAcceleratedNetworking: true // Do we need this for cClear?
+    enableAcceleratedNetworking: true
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
 }
