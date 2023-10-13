@@ -14,7 +14,7 @@ event_grid_system_topic_subscription_name="scaling"
 # Publish the function app code.
 # Wait until the Function app is ready...
 count=0
-while true;do
+while true; do
   if func azure functionapp publish "${function_name}" --python; then
     break
   fi

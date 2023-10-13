@@ -20,6 +20,7 @@ appliance_type_value = "cClear-V"
 key_vault_name = "cpacket"
 appliance_username = "cpacket"
 
+
 def main(event: func.EventGridEvent):
     result = json.dumps(
         {
@@ -74,7 +75,9 @@ def main(event: func.EventGridEvent):
         logging.info(f"no CVUVs found in {scale_set_name}")
         return
 
-    cclearv_instance = get_vm_by_tag(compute_client, appliance_type_key, appliance_type_value, resource_group_name)
+    cclearv_instance = get_vm_by_tag(
+        compute_client, appliance_type_key, appliance_type_value, resource_group_name
+    )
     if cclearv_instance is None:
         logging.error(
             f"Failed to find cClear-V instance with tag {appliance_type_key}={appliance_type_value}: bailing"
@@ -127,6 +130,8 @@ def main(event: func.EventGridEvent):
     # synchronization
     successfully_added_cvuv_ips: typing.Set[str] = set()
 
+    cclearv_user, cclearv_password = get_cpacket_credentials()
+
     for cvuv_ip, cvuv_id, device_id in cvuv_devices:
         if cvuv_ip in cvuv_registry_ips:
             logging.info(f"{cvuv_ip} is already registered with cClear-V")
@@ -154,6 +159,15 @@ def main(event: func.EventGridEvent):
         )
         if metrics_activation_result is None:
             logging.info(f"skipping {cvuv_ip} metrics activation due to previous error")
+            continue
+
+        configure_influx_result = configure_influx(
+            cvuv_ip, cclearv_ip_address, cclearv_user, cclearv_password
+        )
+        if configure_influx_result is None:
+            logging.info(
+                f"skipping {cvuv_ip} InfluxDB configuration due to previous error"
+            )
             continue
 
     logging.info(
@@ -238,6 +252,28 @@ def device_auth(cclearv_ip: str, device_id: str) -> typing.Optional[typing.Dict]
     else:
         logging.error(f"failed device authentication for {device_id}")
         return None
+
+
+def configure_influx(
+    cvuv_ip: str, cclearv_ip: str, cclearv_user: str, cclearv_password: str
+) -> typing.Optional[typing.Dict]:
+    cvuv_url = f"https://{cvuv_ip}/admin-api/2022/system_settings"
+    payload = {
+        "stats_db_user": cclearv_user,
+        "stats_db_pswd": cclearv_password,
+        "stats_db_server": cclearv_ip,
+    }
+    response = send_prepared_request(
+        requests.Request(
+            "PATCH", cvuv_url, json=payload, auth=get_cpacket_credentials()
+        ).prepare()
+    )
+    if response is not None:
+        logging.info(f"successfully configured stats DB for {cvuv_ip}")
+        return decode_response(response)
+
+    logging.error(f"failed stats DB configuration for {cvuv_ip}")
+    return None
 
 
 def register_cvuv(
@@ -384,7 +420,9 @@ def get_vm_by_tag(
 ) -> typing.Any:
 
     virtual_machines = []
-    for vm in compute_client.virtual_machines.list(resource_group_name=resource_group_name):
+    for vm in compute_client.virtual_machines.list(
+        resource_group_name=resource_group_name
+    ):
         if (
             vm.tags is not None
             and tag_name in vm.tags
@@ -496,6 +534,16 @@ def get_cvuv_ip_addresses(
     cvuv_devices: typing.List[typing.Tuple] = []
     for nic in scale_set_nics["value"]:
         logging.info(f"nic: {nic}")
+
+        if (
+            "loadBalancerBackendAddressPools"
+            in nic["properties"]["ipConfigurations"][0]["properties"]
+        ):
+            # This is a cVu-V capture NIC:
+            continue
+
+        # Should we also check whether this is a primary IP config or not?
+
         private_ip_address = nic["properties"]["ipConfigurations"][0]["properties"][
             "privateIPAddress"
         ]
