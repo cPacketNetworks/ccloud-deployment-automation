@@ -79,7 +79,7 @@
           }
         ]
       }
-   ],
+    ],
     "steps": [
       {
         "name": "networkSection",
@@ -338,30 +338,6 @@
             "constraints": {
               "required": true
             }
-          },
-          {
-            "name": "TESTexistingVM",
-            "type": "Microsoft.Solutions.ResourceSelector",
-            "label": "TEST Existing VM",
-            "resourceType": "Microsoft.Compute/virtualMachines",
-            "options": {
-              "filter": {
-                "subscription": "onBasics",
-                "location": "onBasics"
-              }
-            }
-          },
-          {
-            "name": "TESTexistingNIC",
-            "type": "Microsoft.Solutions.ResourceSelector",
-            "label": "TEST Existing NIC",
-            "resourceType": "Microsoft.Network/networkInterfaces",
-            "options": {
-              "filter": {
-                "subscription": "onBasics",
-                "location": "onBasics"
-              }
-            }
           }
         ]
       },
@@ -447,8 +423,6 @@
       "vmssMin": "[int(steps('cvuvSection').vmssMin)]",
       "vmssMax": "[int(steps('cvuvSection').vmssMax)]",
       "downstreamTools": "[steps('cvuvSection').vmssDsTools]",
-      "TESTexistingVM": "[steps('cvuvSection').TESTexistingVM]",
-      "TESTexistingNIC": "[steps('cvuvSection').TESTexistingNIC]",
       "cclearvName": "[steps('cclearvSection').cclearvName]",
       "cclearvVmImageId": "[steps('cclearvSection').cclearvVmImageSelector.id]",
       "cclearvVmImageLocation": "[steps('cclearvSection').cclearvVmImageSelector.location]",
