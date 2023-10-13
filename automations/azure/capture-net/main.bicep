@@ -55,9 +55,6 @@ param tags object
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Variables - start
 
-// compute the subnet IDs depending on whether they exist.
-var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? captureSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
-
 // Ensure 60 is a reasonable value - guessing between 60 and 300.
 // see: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep#backendaddresspoolpropertiesformat
 // var lbDrainPeriodInSecs = 60
@@ -166,6 +163,8 @@ resource captureSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = 
   }
 }
 
+var monitoringSubnetId = virtualNetwork.newOrExisting == 'new' ? captureSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.monitoringSubnet.name)
+
 resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   dependsOn: [
     captureSubnet
@@ -179,6 +178,8 @@ resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
     }
   }
 }
+
+var managementSubnetId = virtualNetwork.newOrExisting == 'new' ? managementSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.managementSubnet.name)
 
 resource functionsSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   dependsOn: [
@@ -201,6 +202,8 @@ resource functionsSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' 
     privateLinkServiceNetworkPolicies: 'Enabled'
   }
 }
+
+var functionsSubnetId = virtualNetwork.newOrExisting == 'new' ? functionsSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.functionsSubnet.name)
 
 // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep
 resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
@@ -275,7 +278,7 @@ resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
   }
 }
 
-resource cclearNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = {
+resource cclearNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = {
   name: cclearvName
   location: location
   dependsOn: [
@@ -294,6 +297,9 @@ resource cclearNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = {
       }
     ]
     enableAcceleratedNetworking: true
+    networkSecurityGroup: {
+      id: managementSecurityGroup.id
+    }
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
 }
@@ -347,7 +353,7 @@ resource cclearVm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': cclearvName }) : { 'cpacket:ApplianceType': cclearvName }
 }
 
-resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
+resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
   name: '${cstorvName}-cap-nic'
   location: location
   dependsOn: [
@@ -367,13 +373,16 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if 
       }
     ]
     enableAcceleratedNetworking: true
+    networkSecurityGroup: {
+      id: captureSecurityGroup.id
+    }
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
 }
 
 // There seems to be an issue when creating VMs that don't have public networking/ip configs setup 
 // seems as though you have to create the nic and VM's separately see https://github.com/Azure/azure-rest-api-specs/issues/19446 
-resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = if (cstorvEnable) {
+resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
   name: '${cstorvName}-mgmt-nic'
   location: location
   properties: {
@@ -389,6 +398,9 @@ resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2020-11-01' = 
       }
     ]
     enableAcceleratedNetworking: true
+    networkSecurityGroup: {
+      id: managementSecurityGroup.id
+    }
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
 }
@@ -689,6 +701,19 @@ resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-0
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
           destinationPortRange: '22'
+        }
+      }
+      {
+        name: 'allow-https'
+        properties: {
+          priority: 110
+          protocol: 'Tcp'
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: '*'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '443'
         }
       }
     ]
