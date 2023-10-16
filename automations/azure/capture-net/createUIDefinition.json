@@ -330,7 +330,7 @@
           {
             "name": "vmssDsTools",
             "type": "Microsoft.Common.TextBox",
-            "label": "Downstream destinations for VXLAN encapsulated traffic",
+            "label": "Downstream destinations for VXLAN encapsulated traffic (omit cStor-V if specified in previous section)",
             "placeholder": "",
             "defaultValue": "",
             "toolTip": "Comma separated list of IPV4 addresses",
