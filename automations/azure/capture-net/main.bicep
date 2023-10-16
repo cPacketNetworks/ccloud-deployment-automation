@@ -483,7 +483,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
     lb
   ]
 
-  name: vmssName
+  name: '${vmssName}-${deploymentId}'
   location: location
   tags: contains(tags, 'Microsoft.Compute/virtualMachineScaleSets') ? tags['Microsoft.Compute/virtualMachineScaleSets'] : null
 
