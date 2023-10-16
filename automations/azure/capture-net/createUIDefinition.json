@@ -241,7 +241,12 @@
             "placeholder": "",
             "defaultValue": "10.x.x.x",
             "toolTip": "Static IP address for cStor-V: ensure this is on the capture/monitoring subnet",
-            "visible": "true"
+            "visible": "true",
+            "constraints": {
+              "required": true,
+              "regex": "^[1-9]{1,3}\\.[1-9]{1,3}\\.[1-9]{1,3}\\.[1-9]{1,3}$",
+              "validationMessage": "Must be valid IPV4 address"
+            }
           }
         ]
       },
@@ -336,7 +341,9 @@
             "toolTip": "Comma separated list of IPV4 addresses",
             "visible": true,
             "constraints": {
-              "required": true
+              "required": true,
+              "regex": "^[1-9]{1,3}\\.[1-9]{1,3}\\.[1-9]{1,3}\\.[1-9]{1,3}$",
+              "validationMessage": "Must be valid IPV4 address"
             }
           }
         ]
