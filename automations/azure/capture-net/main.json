@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "1519212353516765665"
+      "templateHash": "17052423054960849161"
     }
   },
   "parameters": {
@@ -460,7 +460,7 @@
     {
       "type": "Microsoft.Compute/virtualMachineScaleSets",
       "apiVersion": "2022-11-01",
-      "name": "[parameters('vmssName')]",
+      "name": "[format('{0}-{1}', parameters('vmssName'), parameters('deploymentId'))]",
       "location": "[parameters('location')]",
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachineScaleSets'), parameters('tags')['Microsoft.Compute/virtualMachineScaleSets'], null())]",
       "sku": {
@@ -566,7 +566,7 @@
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachineScaleSets'), parameters('tags')['Microsoft.Compute/virtualMachineScaleSets'], null())]",
       "properties": {
         "name": "[format('{0}-autoscale', parameters('deploymentId'))]",
-        "targetResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]",
+        "targetResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
         "enabled": true,
         "profiles": [
           {
@@ -580,7 +580,7 @@
               {
                 "metricTrigger": {
                   "metricName": "Network in Total",
-                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]",
+                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
                   "timeGrain": "[variables('autoscaleUpTimeGrain')]",
                   "statistic": "Average",
                   "timeWindow": "[variables('autoscaleUpTimeWindow')]",
@@ -598,7 +598,7 @@
               {
                 "metricTrigger": {
                   "metricName": "Network in Total",
-                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]",
+                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
                   "timeGrain": "[variables('autoscaleDownTimeGrain')]",
                   "statistic": "Average",
                   "timeWindow": "[variables('autoscaleDownTimeWindow')]",
@@ -618,7 +618,7 @@
         ]
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]"
+        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]"
       ]
     },
     {
