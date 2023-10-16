@@ -131,7 +131,7 @@ done
 echo "boot configuration: completed"
 '''
 
-var cvuv_cloud_init = replace(cvuv_cloud_init_template, 'DOWNSTREAM_CAPTURE_IPS', downstreamTools)
+var cvuv_cloud_init = replace(cvuv_cloud_init_template, 'DOWNSTREAM_CAPTURE_IPS', empty(cstorvCaptureIpAddress) ? downstreamTools : '${cstorvCaptureIpAddress},${downstreamTools}')
 
 // Variables - end
 //////////////////////////////////////////////////////////////////////////////

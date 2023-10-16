@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "816339386497583445"
+      "templateHash": "1519212353516765665"
     }
   },
   "parameters": {
@@ -114,7 +114,7 @@
       }
     },
     "cvuv_cloud_init_template": "#!/bin/bash\nset -ex\n\necho \"set -o vi\" >>/home/ubuntu/.bashrc\necho \"set -o vi\" >>/root/.bashrc\n\nbootconfig_file=\"/home/cpacket/boot_config.toml\"\n\n# Comma-separated list of IPV4 addresses\ndownstream_tools=\"DOWNSTREAM_CAPTURE_IPS\"\n\n# Convert the comma-separated list into an array\nIFS=',' read -r -a downstream_tool_addresses <<<\"$(echo \"$downstream_tools\" | tr -d '[:space:]')\"\n\ncapture_nic=\"eth0\"\ncapture_nic_ip=$(ip a show dev \"$capture_nic\" | awk -F'[ /]' '/inet /{print $6}')\n\ntouch \"$bootconfig_file\"\nchmod a+w \"$bootconfig_file\"\n\ncat >\"$bootconfig_file\" <<BOOTCFG_HEADER\nvm_type = \"azure\"\ncvuv_mode = \"inline\"\ncvuv_mirror_eth_0 = \"$capture_nic\"\nBOOTCFG_HEADER\n\nfor tools_index in \"${!downstream_tool_addresses[@]}\"; do\n  name_index=$((tools_index))\n  leet_index=$((tools_index + 1337))\n  cat >>\"$bootconfig_file\" <<ADDITIONAL_TOOLS\ncvuv_vxlan_id_${name_index} = ${leet_index}\ncvuv_vxlan_srcip_${name_index} = \"$capture_nic_ip\"\ncvuv_vxlan_remoteip_${name_index} = \"${downstream_tool_addresses[$tools_index]}\"\nADDITIONAL_TOOLS\ndone\n\n# cat >>\"$bootconfig_file\" <<FOOTER\n# FOOTER\n\necho \"boot configuration: completed\"\n",
-    "cvuv_cloud_init": "[replace(variables('cvuv_cloud_init_template'), 'DOWNSTREAM_CAPTURE_IPS', parameters('downstreamTools'))]",
+    "cvuv_cloud_init": "[replace(variables('cvuv_cloud_init_template'), 'DOWNSTREAM_CAPTURE_IPS', if(empty(parameters('cstorvCaptureIpAddress')), parameters('downstreamTools'), format('{0},{1}', parameters('cstorvCaptureIpAddress'), parameters('downstreamTools'))))]",
     "monitoringSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name))]",
     "managementSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name))]",
     "functionsSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.functionsSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.functionsSubnet.name))]"

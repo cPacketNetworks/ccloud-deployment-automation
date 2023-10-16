@@ -332,7 +332,7 @@
             "type": "Microsoft.Common.TextBox",
             "label": "Downstream destinations for VXLAN encapsulated traffic",
             "placeholder": "",
-            "defaultValue": "[steps('cstorvSection').cstorvCaptureIpAddress]",
+            "defaultValue": "",
             "toolTip": "Comma separated list of IPV4 addresses",
             "visible": true,
             "constraints": {
