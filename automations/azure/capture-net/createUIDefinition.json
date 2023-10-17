@@ -6,7 +6,7 @@
     "config": {
       "isWizard": true,
       "basics": {
-        "description": "# cCloud cVu-V Azure VMSS deployment tool \n This configuration application helps you deploy cPacket cVu-V packet brokers into an Azure Virtual Machine Scale Set (VMSS) \n # Prerequisites \n The following are required before starting this process: \n - a Resource Group to house the cPacket appliances and infrastructure \n - a VNET \n - a capture subnet \n - a management subnet \n - a functions app network connectivity subnet \n # See also \n - [cPacket's Website](https://www.cpacket.com)\n",
+        "description": "# cCloud cVu-V Azure VMSS deployment tool \n This configuration application helps you deploy cPacket cVu-V packet brokers into an Azure Virtual Machine Scale Set (VMSS) \n # Prerequisites \n The following are required before starting this process: \n - a Resource Group to house the cPacket appliances and infrastructure \n - a VNET \n - a capture subnet \n - a management subnet \n - a functions app network connectivity subnet \n # See also \n - [cPacket's Website](https://www.cpacket.com)\n - RBAC/IAM role for the appliance registration Function App",
         "subscription": {
           "constraints": {
             "validations": [
