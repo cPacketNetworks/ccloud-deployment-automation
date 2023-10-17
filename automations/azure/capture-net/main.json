@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "17394794673610155061"
+      "templateHash": "17253016146210912131"
     }
   },
   "parameters": {
@@ -561,7 +561,7 @@
     {
       "type": "Microsoft.Insights/autoscalesettings",
       "apiVersion": "2021-05-01-preview",
-      "name": "[format('{0}-autoscale', parameters('deploymentId'))]",
+      "name": "[format('{0}-{1}', parameters('vmssName'), parameters('deploymentId'))]",
       "location": "[parameters('location')]",
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachineScaleSets'), parameters('tags')['Microsoft.Compute/virtualMachineScaleSets'], null())]",
       "properties": {
