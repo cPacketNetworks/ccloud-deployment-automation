@@ -46,7 +46,8 @@ param cstorvCaptureIpAddress string
 // cvuv downstream tool IPs - must go into generated user-data
 param downstreamTools string
 
-// Docs: https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
+// https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-support
+// https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/tag-resources-bicep 
 param tags object
 
 // Parameters - end
@@ -350,7 +351,7 @@ resource cclearVm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
       linuxConfiguration: linuxConfiguration
     }
   }
-  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': cclearvName }) : { 'cpacket:ApplianceType': cclearvName }
+  tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': 'cClear-V' }) : { 'cpacket:ApplianceType': 'cClear-V' }
 }
 
 resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
