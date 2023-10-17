@@ -48,7 +48,7 @@
             "toolTip": "The deploymend id value is added as a prefix to resources created to make them easier to identify and manage",
             "constraints": {
               "required": true,
-              "regex": "^[a-z0-9A-Z]{5,18}$",
+              "regex": "^[a-z0-9]{5,18}$",
               "validationMessage": "The name must be between 5 and 18 characters long and contain letters and numbers only."
             },
             "visible": true
