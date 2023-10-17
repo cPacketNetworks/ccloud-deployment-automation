@@ -631,7 +631,7 @@ resource vmssautoscalesettings 'Microsoft.Insights/autoscalesettings@2021-05-01-
 
   properties: {
     // an error is thrown if this name is not the same as the resource name above ...weird.
-    name: '${deploymentId}-autoscale'
+    name: '${vmssName}-${deploymentId}'
     targetResourceUri: vmss.id
     enabled: true
     profiles: [
