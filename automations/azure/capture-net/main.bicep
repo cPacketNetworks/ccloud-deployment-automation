@@ -744,7 +744,7 @@ resource captureSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-02-0
 }
 
 resource hostplan 'Microsoft.Web/serverfarms@2022-09-01' = {
-  name: 'cpacketappliances'
+  name: 'cpacketappliances${deploymentId}'
   kind: 'elastic'
   location: location
   properties: {
@@ -804,7 +804,7 @@ resource cpacketappliancesStorage 'Microsoft.Storage/storageAccounts@2022-09-01'
 }
 
 resource cpacketappliancesMonitoring 'Microsoft.Insights/components@2020-02-02' = {
-  name: 'cpacketappliances'
+  name: 'cpacketappliances${deploymentId}'
   location: location
   tags: {}
   kind: 'web'

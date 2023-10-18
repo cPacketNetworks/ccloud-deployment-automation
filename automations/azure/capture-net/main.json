@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "1718686618439948849"
+      "templateHash": "12093892325079797480"
     }
   },
   "parameters": {
@@ -683,7 +683,7 @@
     {
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2022-09-01",
-      "name": "cpacketappliances",
+      "name": "[format('cpacketappliances{0}', parameters('deploymentId'))]",
       "kind": "elastic",
       "location": "[parameters('location')]",
       "properties": {
@@ -745,7 +745,7 @@
     {
       "type": "Microsoft.Insights/components",
       "apiVersion": "2020-02-02",
-      "name": "cpacketappliances",
+      "name": "[format('cpacketappliances{0}', parameters('deploymentId'))]",
       "location": "[parameters('location')]",
       "tags": {},
       "kind": "web",
