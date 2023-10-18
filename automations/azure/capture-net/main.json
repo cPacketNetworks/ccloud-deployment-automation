@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "17253016146210912131"
+      "templateHash": "1718686618439948849"
     }
   },
   "parameters": {
@@ -326,7 +326,7 @@
           "linuxConfiguration": "[variables('linuxConfiguration')]"
         }
       },
-      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', parameters('cclearvName'))), createObject('cpacket:ApplianceType', parameters('cclearvName')))]",
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', 'cClear-V')), createObject('cpacket:ApplianceType', 'cClear-V'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', parameters('cclearvName'))]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
