@@ -134,13 +134,41 @@ echo "boot configuration: completed"
 
 var cvuv_cloud_init = replace(cvuv_cloud_init_template, 'DOWNSTREAM_CAPTURE_IPS', empty(cstorvCaptureIpAddress) ? downstreamTools : '${cstorvCaptureIpAddress},${downstreamTools}')
 
+var cstorv_cloud_init_template = '''
+#!/bin/bash
+set -ex
+
+capture_nic_ip="CSTORV_CAPTURE_IP"
+capture_nic="eth1"
+management_nic_ip="CSTORV_MANAGEMENT_IP"
+management_nic="eth0"
+
+config_file="/home/cpacket/boot_config.toml"
+touch "$config_file"
+chmod a+w /home/cpacket/boot_config.toml
+
+cat >/home/cpacket/boot_config.toml <<EOF_BOOTCFG
+vm_type = "azure"
+decap_mode = "vxlan"
+capture_mode =  "libpcap"
+eth_dev  = "$capture_nic"
+capture_nic_index = 1
+capture_nic_eth = "$capture_nic"
+capture_nic_ip = "$capture_nic_ip"
+management_nic_eth = "$management_nic"
+management_nic_ip = "$management_nic_ip"
+num_pcap_bufs = 2
+EOF_BOOTCFG
+'''
+
+var cstorv_cloud_init = replace(replace(cstorv_cloud_init_template, 'CSTORV_CAPTURE_IP', cstorvCaptureIpAddress), 'CSTORV_MANAGEMENT_IP', cstorvManagementNIC.properties.ipConfigurations[0].properties.privateIPAddress)
+
 // Variables - end
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // Resources - start
 
-// TODO: is there a way to condition on null values instead of the magic 'new' string?
 resource monitoringVnet 'Microsoft.Network/virtualNetworks@2020-11-01' = if (virtualNetwork.newOrExisting == 'new') {
   name: virtualNetwork.name
   location: location
@@ -463,7 +491,7 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
       adminUsername: adminUser
       adminPassword: sshPublicKey
       linuxConfiguration: linuxConfiguration
-      //customData: loadFileAsBase64('./cstorv-cloud-init.sh')
+      customData: base64(cstorv_cloud_init)
     }
   }
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? tags['Microsoft.Compute/virtualMachines'] : null
