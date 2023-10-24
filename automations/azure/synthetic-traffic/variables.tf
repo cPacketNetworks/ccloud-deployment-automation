@@ -4,27 +4,27 @@ variable "vnet_name" {
 
 variable "bastion_subnet_cidr" {
   type    = string
-  default = "10.20.254.0/24"
+  default = "10.0.254.0/24"
 }
 
 variable "workloadA_subnet_cidr" {
   type    = string
-  default = "10.20.20.0/24"
+  default = "10.0.20.0/24"
 }
 
 variable "workload_a_ip" {
   type    = string
-  default = "10.20.20.10"
+  default = "10.0.20.10"
 }
 
 variable "workloadB_subnet_cidr" {
   type    = string
-  default = "10.20.21.0/24"
+  default = "10.0.21.0/24"
 }
 
 variable "workload_b_ip" {
   type    = string
-  default = "10.20.21.10"
+  default = "10.0.21.10"
 }
 
 variable "lb_ip" {

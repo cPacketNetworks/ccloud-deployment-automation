@@ -139,9 +139,9 @@ var cstorv_cloud_init_template = '''
 set -ex
 
 capture_nic_ip="CSTORV_CAPTURE_IP"
-capture_nic="eth1"
+capture_nic="eth0"
 management_nic_ip="CSTORV_MANAGEMENT_IP"
-management_nic="eth0"
+management_nic="eth1"
 
 config_file="/home/cpacket/boot_config.toml"
 touch "$config_file"
@@ -152,7 +152,7 @@ vm_type = "azure"
 decap_mode = "vxlan"
 capture_mode =  "libpcap"
 eth_dev  = "$capture_nic"
-capture_nic_index = 1
+capture_nic_index = 0
 capture_nic_eth = "$capture_nic"
 capture_nic_ip = "$capture_nic_ip"
 management_nic_eth = "$management_nic"
