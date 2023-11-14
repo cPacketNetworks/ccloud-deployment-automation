@@ -1,0 +1,660 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.22.6.54827",
+      "templateHash": "13842411952267345681"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string"
+    },
+    "deploymentId": {
+      "type": "string"
+    },
+    "sshPublicKey": {
+      "type": "string"
+    },
+    "adminUser": {
+      "type": "string",
+      "defaultValue": "ubuntu"
+    },
+    "virtualNetwork": {
+      "type": "object"
+    },
+    "cclearvName": {
+      "type": "string",
+      "defaultValue": "cClear-V"
+    },
+    "cclearvVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4s_v5"
+    },
+    "cclearvVmImageId": {
+      "type": "string"
+    },
+    "lbName": {
+      "type": "string"
+    },
+    "vmssName": {
+      "type": "string"
+    },
+    "vmssVmSize": {
+      "type": "string"
+    },
+    "cvuvVmImageId": {
+      "type": "string"
+    },
+    "vmssMin": {
+      "type": "int"
+    },
+    "vmssMax": {
+      "type": "int"
+    },
+    "cstorvEnable": {
+      "type": "bool"
+    },
+    "cstorvName": {
+      "type": "string"
+    },
+    "cstorvVmImageId": {
+      "type": "string"
+    },
+    "cstorvVmSize": {
+      "type": "string"
+    },
+    "cstorvVmNumDisks": {
+      "type": "int",
+      "defaultValue": 2
+    },
+    "cstorvVmDiskSize": {
+      "type": "int",
+      "defaultValue": 500
+    },
+    "cstorvDataDiskDeleteOption": {
+      "type": "string",
+      "defaultValue": "Detach"
+    },
+    "cstorvCaptureIpAddress": {
+      "type": "string"
+    },
+    "downstreamTools": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "object"
+    }
+  },
+  "variables": {
+    "lbBePoolName": "[format('{0}-backend', parameters('lbName'))]",
+    "lbPoolId": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), variables('lbBePoolName'))]",
+    "lbProbeName": "[format('{0}-probe', parameters('lbName'))]",
+    "lbProbeId": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('lbName'), variables('lbProbeName'))]",
+    "vmssInstRepairGracePeriod": "PT10M",
+    "autoscaleUpThreshhold": 10000000,
+    "autoscaleUpTimeGrain": "PT1M",
+    "autoscaleUpTimeWindow": "PT5M",
+    "autoscaleUpCooldown": "PT1M",
+    "autoscaleDownThreshhold": 2500000,
+    "autoscaleDownTimeGrain": "PT1M",
+    "autoscaleDownTimeWindow": "PT5M",
+    "autoscaleDownCooldown": "PT1M",
+    "linuxConfiguration": {
+      "disablePasswordAuthentication": true,
+      "ssh": {
+        "publicKeys": [
+          {
+            "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUser'))]",
+            "keyData": "[parameters('sshPublicKey')]"
+          }
+        ]
+      }
+    },
+    "cvuv_cloud_init_template": "#!/bin/bash\nset -ex\n\necho \"set -o vi\" >>/home/ubuntu/.bashrc\necho \"set -o vi\" >>/root/.bashrc\n\nbootconfig_file=\"/home/cpacket/boot_config.toml\"\n\n# Comma-separated list of IPV4 addresses\ndownstream_tools=\"DOWNSTREAM_CAPTURE_IPS\"\n\n# Convert the comma-separated list into an array\nIFS=',' read -r -a downstream_tool_addresses <<<\"$(echo \"$downstream_tools\" | tr -d '[:space:]')\"\n\ncapture_nic=\"eth0\"\ncapture_nic_ip=$(ip a show dev \"$capture_nic\" | awk -F'[ /]' '/inet /{print $6}')\n\ntouch \"$bootconfig_file\"\nchmod a+w \"$bootconfig_file\"\n\ncat >\"$bootconfig_file\" <<BOOTCFG_HEADER\nvm_type = \"azure\"\ncvuv_mode = \"inline\"\ncvuv_mirror_eth_0 = \"$capture_nic\"\nBOOTCFG_HEADER\n\nfor tools_index in \"${!downstream_tool_addresses[@]}\"; do\n  name_index=$((tools_index))\n  leet_index=$((tools_index + 1337))\n  cat >>\"$bootconfig_file\" <<ADDITIONAL_TOOLS\ncvuv_vxlan_id_${name_index} = ${leet_index}\ncvuv_vxlan_srcip_${name_index} = \"$capture_nic_ip\"\ncvuv_vxlan_remoteip_${name_index} = \"${downstream_tool_addresses[$tools_index]}\"\nADDITIONAL_TOOLS\ndone\n\n# cat >>\"$bootconfig_file\" <<FOOTER\n# FOOTER\n\necho \"boot configuration: completed\"\n",
+    "cvuv_cloud_init": "[replace(variables('cvuv_cloud_init_template'), 'DOWNSTREAM_CAPTURE_IPS', if(empty(parameters('cstorvCaptureIpAddress')), parameters('downstreamTools'), format('{0},{1}', parameters('cstorvCaptureIpAddress'), parameters('downstreamTools'))))]",
+    "cstorv_cloud_init_template": "#!/bin/bash\nset -ex\n\ncapture_nic_ip=\"CSTORV_CAPTURE_IP\"\ncapture_nic=\"eth0\"\nmanagement_nic_ip=\"CSTORV_MANAGEMENT_IP\"\nmanagement_nic=\"eth1\"\n\nconfig_file=\"/home/cpacket/boot_config.toml\"\ntouch \"$config_file\"\nchmod a+w /home/cpacket/boot_config.toml\n\ncat >/home/cpacket/boot_config.toml <<EOF_BOOTCFG\nvm_type = \"azure\"\ndecap_mode = \"vxlan\"\ncapture_mode =  \"libpcap\"\neth_dev  = \"$capture_nic\"\ncapture_nic_index = 0\ncapture_nic_eth = \"$capture_nic\"\ncapture_nic_ip = \"$capture_nic_ip\"\nmanagement_nic_eth = \"$management_nic\"\nmanagement_nic_ip = \"$management_nic_ip\"\nnum_pcap_bufs = 2\nEOF_BOOTCFG\n",
+    "monitoringSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name))]",
+    "managementSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name))]"
+  },
+  "resources": [
+    {
+      "condition": "[equals(parameters('virtualNetwork').newOrExisting, 'new')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2020-11-01",
+      "name": "[parameters('virtualNetwork').name]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": "[parameters('virtualNetwork').addressPrefixes]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/virtualNetworks'), parameters('tags')['Microsoft.Network/virtualNetworks'], null())]"
+    },
+    {
+      "condition": "[equals(parameters('virtualNetwork').newOrExisting, 'new')]",
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}/{1}', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+      "properties": {
+        "addressPrefix": "[parameters('virtualNetwork').subnets.monitoringSubnet.addressPrefix]",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('virtualNetwork').newOrExisting, 'new')]",
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2020-11-01",
+      "name": "[format('{0}/{1}', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
+      "properties": {
+        "addressPrefix": "[parameters('virtualNetwork').subnets.managementSubnet.addressPrefix]",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "apiVersion": "2021-05-01",
+      "name": "[parameters('lbName')]",
+      "location": "[parameters('location')]",
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/loadBalancers'), parameters('tags')['Microsoft.Network/loadBalancers'], null())]",
+      "sku": {
+        "name": "Standard",
+        "tier": "Regional"
+      },
+      "properties": {
+        "backendAddressPools": [
+          {
+            "name": "[variables('lbBePoolName')]"
+          }
+        ],
+        "frontendIPConfigurations": [
+          {
+            "name": "[format('{0}-frontend', parameters('lbName'))]",
+            "properties": {
+              "subnet": {
+                "id": "[variables('monitoringSubnetId')]"
+              }
+            }
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "[format('{0}-to-vmss', parameters('lbName'))]",
+            "properties": {
+              "frontendPort": 0,
+              "backendPort": 0,
+              "protocol": "All",
+              "enableTcpReset": true,
+              "frontendIPConfiguration": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIpConfigurations', parameters('lbName'), format('{0}-frontend', parameters('lbName')))]"
+              },
+              "backendAddressPool": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), variables('lbBePoolName'))]"
+              },
+              "probe": {
+                "id": "[variables('lbProbeId')]"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "[variables('lbProbeName')]",
+            "properties": {
+              "protocol": "Https",
+              "port": 443,
+              "requestPath": "/",
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "name": "[parameters('cclearvName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "management-ipcfg",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": true,
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2021-03-01",
+      "name": "[parameters('cclearvName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('cclearvVmSize')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "id": "[parameters('cclearvVmImageId')]"
+          },
+          "osDisk": {
+            "osType": "Linux",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "deleteOption": "Delete"
+          },
+          "dataDisks": [
+            {
+              "name": "[format('{0}-DataDisk1', parameters('cclearvName'))]",
+              "lun": 1,
+              "createOption": "Empty",
+              "diskSizeGB": 500,
+              "caching": "ReadWrite",
+              "deleteOption": "Delete"
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('cclearvName'))]"
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('cclearvName')]",
+          "adminUsername": "[parameters('adminUser')]",
+          "adminPassword": "[parameters('sshPublicKey')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', 'cClear-V')), createObject('cpacket:ApplianceType', 'cClear-V'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', parameters('cclearvName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-cap-nic', parameters('cstorvName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[format('{0}-cap-ipcfg', parameters('cstorvName'))]",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('cstorvCaptureIpAddress')]",
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]"
+              }
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": true,
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-04-01",
+      "name": "[format('{0}-mgmt-nic', parameters('cstorvName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[format('{0}-mgmt-ipcfg', parameters('cstorvName'))]",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": true,
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+      ]
+    },
+    {
+      "condition": "[parameters('cstorvEnable')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2021-03-01",
+      "name": "[parameters('cstorvName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('cstorvVmSize')]"
+        },
+        "storageProfile": {
+          "copy": [
+            {
+              "name": "dataDisks",
+              "count": "[length(range(0, parameters('cstorvVmNumDisks')))]",
+              "input": {
+                "name": "[format('{0}-datadisk-{1}', parameters('cstorvName'), range(0, parameters('cstorvVmNumDisks'))[copyIndex('dataDisks')])]",
+                "lun": "[range(0, parameters('cstorvVmNumDisks'))[copyIndex('dataDisks')]]",
+                "createOption": "Empty",
+                "diskSizeGB": "[parameters('cstorvVmDiskSize')]",
+                "caching": "ReadWrite",
+                "deleteOption": "[parameters('cstorvDataDiskDeleteOption')]"
+              }
+            }
+          ],
+          "imageReference": {
+            "id": "[parameters('cstorvVmImageId')]"
+          },
+          "osDisk": {
+            "osType": "Linux",
+            "createOption": "FromImage",
+            "caching": "ReadWrite",
+            "deleteOption": "Delete"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
+              "properties": {
+                "primary": false
+              }
+            },
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
+              "properties": {
+                "primary": true
+              }
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('cstorvName')]",
+          "adminUsername": "[parameters('adminUser')]",
+          "adminPassword": "[parameters('sshPublicKey')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]",
+          "customData": "[base64(replace(replace(variables('cstorv_cloud_init_template'), 'CSTORV_CAPTURE_IP', parameters('cstorvCaptureIpAddress')), 'CSTORV_MANAGEMENT_IP', reference(resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName'))), '2023-04-01').ipConfigurations[0].properties.privateIPAddress))]"
+        }
+      },
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), parameters('tags')['Microsoft.Compute/virtualMachines'], null())]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachineScaleSets",
+      "apiVersion": "2022-11-01",
+      "name": "[format('{0}-{1}', parameters('vmssName'), parameters('deploymentId'))]",
+      "location": "[parameters('location')]",
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachineScaleSets'), parameters('tags')['Microsoft.Compute/virtualMachineScaleSets'], null())]",
+      "sku": {
+        "name": "[parameters('vmssVmSize')]",
+        "tier": "Standard",
+        "capacity": "[parameters('vmssMin')]"
+      },
+      "properties": {
+        "orchestrationMode": "Uniform",
+        "overprovision": false,
+        "automaticRepairsPolicy": {
+          "enabled": true,
+          "gracePeriod": "[variables('vmssInstRepairGracePeriod')]"
+        },
+        "scaleInPolicy": {
+          "rules": [
+            "Default"
+          ]
+        },
+        "upgradePolicy": {
+          "mode": "Manual"
+        },
+        "virtualMachineProfile": {
+          "osProfile": {
+            "computerNamePrefix": "[format('{0}-cvuv-', parameters('deploymentId'))]",
+            "adminUsername": "[parameters('adminUser')]",
+            "adminPassword": "[parameters('sshPublicKey')]",
+            "linuxConfiguration": "[variables('linuxConfiguration')]",
+            "customData": "[base64(variables('cvuv_cloud_init'))]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "id": "[parameters('cvuvVmImageId')]"
+            },
+            "osDisk": {
+              "createOption": "FromImage",
+              "osType": "Linux"
+            }
+          },
+          "networkProfile": {
+            "healthProbe": {
+              "id": "[variables('lbProbeId')]"
+            },
+            "networkInterfaceConfigurations": [
+              {
+                "name": "[format('{0}-cvuv-cap-nic', parameters('deploymentId'))]",
+                "properties": {
+                  "primary": true,
+                  "enableAcceleratedNetworking": true,
+                  "enableIPForwarding": true,
+                  "ipConfigurations": [
+                    {
+                      "name": "[format('{0}-cap-ipcfg', parameters('deploymentId'))]",
+                      "properties": {
+                        "subnet": {
+                          "id": "[variables('monitoringSubnetId')]"
+                        },
+                        "loadBalancerBackendAddressPools": [
+                          {
+                            "id": "[variables('lbPoolId')]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "[format('{0}-cvuv-man-nic', parameters('deploymentId'))]",
+                "properties": {
+                  "primary": false,
+                  "enableAcceleratedNetworking": true,
+                  "enableIPForwarding": false,
+                  "ipConfigurations": [
+                    {
+                      "name": "[format('{0}-man-ipcfg', parameters('deploymentId'))]",
+                      "properties": {
+                        "subnet": {
+                          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
+        "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/autoscalesettings",
+      "apiVersion": "2021-05-01-preview",
+      "name": "[format('{0}-{1}', parameters('vmssName'), parameters('deploymentId'))]",
+      "location": "[parameters('location')]",
+      "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachineScaleSets'), parameters('tags')['Microsoft.Compute/virtualMachineScaleSets'], null())]",
+      "properties": {
+        "name": "[format('{0}-{1}', parameters('vmssName'), parameters('deploymentId'))]",
+        "targetResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
+        "enabled": true,
+        "profiles": [
+          {
+            "name": "[format('{0}-net-scale-prof', parameters('deploymentId'))]",
+            "capacity": {
+              "minimum": "[string(parameters('vmssMin'))]",
+              "maximum": "[string(parameters('vmssMax'))]",
+              "default": "[string(parameters('vmssMin'))]"
+            },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "Network in Total",
+                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
+                  "timeGrain": "[variables('autoscaleUpTimeGrain')]",
+                  "statistic": "Average",
+                  "timeWindow": "[variables('autoscaleUpTimeWindow')]",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": "[variables('autoscaleUpThreshhold')]"
+                },
+                "scaleAction": {
+                  "direction": "Increase",
+                  "type": "ChangeCount",
+                  "value": "1",
+                  "cooldown": "[variables('autoscaleUpCooldown')]"
+                }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "Network in Total",
+                  "metricResourceUri": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]",
+                  "timeGrain": "[variables('autoscaleDownTimeGrain')]",
+                  "statistic": "Average",
+                  "timeWindow": "[variables('autoscaleDownTimeWindow')]",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": "[variables('autoscaleDownThreshhold')]"
+                },
+                "scaleAction": {
+                  "direction": "Decrease",
+                  "type": "ChangeCount",
+                  "value": "1",
+                  "cooldown": "[variables('autoscaleDownCooldown')]"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachineScaleSets', format('{0}-{1}', parameters('vmssName'), parameters('deploymentId')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-02-01",
+      "name": "managementSecurityGroup",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-ssh",
+            "properties": {
+              "priority": 100,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "22"
+            }
+          },
+          {
+            "name": "allow-https",
+            "properties": {
+              "priority": 110,
+              "protocol": "Tcp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "443"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-02-01",
+      "name": "captureSecurityGroup",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "allow-vxlan",
+            "properties": {
+              "priority": 100,
+              "protocol": "Udp",
+              "access": "Allow",
+              "direction": "Inbound",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "4789"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
