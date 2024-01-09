@@ -38,9 +38,9 @@ def main(event: func.EventGridEvent):
     operation_name = event.get_json()["operationName"]
 
     if operation_name == "Microsoft.Compute/virtualMachineScaleSets/write":
-        logging.info(f"handling scale out operation: {operation_name}")
+        logging.info(f"handling scaling operation: {operation_name}")
     elif operation_name == "Microsoft.Compute/virtualMachineScaleSets/delete":
-        logging.info(f"handling scale in operation: {operation_name}")
+        logging.info(f"handling VMSS machine delete: {operation_name}")
     else:
         logging.info(f"ignoring operation: {operation_name}")
         return
@@ -72,26 +72,13 @@ def main(event: func.EventGridEvent):
     )
 
     if len(cvuv_devices) == 0:
-        logging.info(f"no CVUVs found in {scale_set_name}")
-        return
+        logging.info(f"no cVu-Vs found in {scale_set_name}")
 
-    cclearv_instance = get_vm_by_tag(
-        compute_client, appliance_type_key, appliance_type_value, resource_group_name
+    cclearv_ip_address = get_cclearv_ip_address(
+        compute_client=compute_client,
+        network_client=network_client,
+        resource_group_name=resource_group_name,
     )
-    if cclearv_instance is None:
-        logging.error(
-            f"Failed to find cClear-V instance with tag {appliance_type_key}={appliance_type_value}: bailing"
-        )
-        return
-
-    logging.info(f"cClear-V: {cclearv_instance}")
-
-    cclearv_ip_address = get_vm_primary_ip_address(
-        cclearv_instance, network_client, resource_group_name
-    )
-    if cclearv_ip_address is None:
-        logging.error(f"failed to get primary IP address for cClear-V instance")
-        return
 
     logging.info(f"cClear-V IP address: {cclearv_ip_address}")
     registered_cvuv_devices = list_registered_cvuvs(cclearv_ip_address)
@@ -103,34 +90,18 @@ def main(event: func.EventGridEvent):
 
     if len(registered_cvuv_devices) == 0:
         logging.info("no existing registered cVu-V IP addresses in cClear-V")
+    else:
+        logging.info(
+            # N.B.: Set() type is not JSON serializable
+            f"registered cVu-V devices before synchronization: {json.dumps(list(registered_cvuv_devices), indent=4, sort_keys=True)}"
+        )
 
-    logging.info(
-        # N.B.: Set() type is not JSON serializable
-        f"registered cVu-V IP address before synchronization: {json.dumps(list(registered_cvuv_devices), indent=4, sort_keys=True)}"
-    )
+    cvuv_registry_ips: typing.Dict[str, str] = {
+        device["ip"]: device["_id"] for device in registered_cvuv_devices
+    }
 
-    cvuv_metrics_config = metrics_config(cclearv_ip_address)
-    if cvuv_metrics_config is None:
-        logging.info("failed to get cVu-V metrics config: skipping synchronization")
-        return
-
-    if len(cvuv_metrics_config) != len(registered_cvuv_devices):
-        logging.info("cVu-V metrics config does not match registered cVu-V devices")
-
-    cvuv_registry_ips: typing.Dict[str, str] = {}
-    for (name, device) in registered_cvuv_devices.items():
-        ip = extract_registered_cvuv_ip(device["devurl"])
-        if ip is None:
-            continue
-        if name not in cvuv_metrics_config:
-            continue
-
-        cvuv_registry_ips[ip] = cvuv_metrics_config[name]["deviceOid"]
-
-    # synchronization
+    # synchronization starts
     successfully_added_cvuv_ips: typing.Set[str] = set()
-
-    cclearv_user, cclearv_password = get_cpacket_credentials()
 
     for cvuv_ip, cvuv_id, device_id in cvuv_devices:
         if cvuv_ip in cvuv_registry_ips:
@@ -138,7 +109,9 @@ def main(event: func.EventGridEvent):
             successfully_added_cvuv_ips.add(cvuv_ip)
             continue
 
-        logging.info(f"registering {cvuv_ip} with {cclearv_ip_address}")
+        logging.info(
+            f"registering {cvuv_ip} with {cclearv_ip_address}: {device_id} {cvuv_id}"
+        )
         add_remove_cvuv_response = register_cvuv(
             cclearv_ip_address, cvuv_ip, cvuv_id, device_id
         )
@@ -161,9 +134,7 @@ def main(event: func.EventGridEvent):
             logging.info(f"skipping {cvuv_ip} metrics activation due to previous error")
             continue
 
-        configure_influx_result = configure_influx(
-            cvuv_ip, cclearv_ip_address, cclearv_user, cclearv_password
-        )
+        configure_influx_result = configure_influx(cvuv_ip, cclearv_ip_address)
         if configure_influx_result is None:
             logging.info(
                 f"skipping {cvuv_ip} InfluxDB configuration due to previous error"
@@ -181,14 +152,44 @@ def main(event: func.EventGridEvent):
         test_response = test_http(f"https://{ip}/")
         if test_response is None:
             try:
-                logging.info(
-                    f"removing {ip} with device ID {cvuv_registry_ips[ip]} from {cclearv_ip_address}"
-                )
-                delete_cvuv(cclearv_ip_address, cvuv_registry_ips[ip])
+                deletion_result = delete_cvuv(cclearv_ip_address, cvuv_registry_ips[ip])
+                if deletion_result is None:
+                    logging.error(
+                        f"failed to remove {ip} with device ID {cvuv_registry_ips[ip]} from {cclearv_ip_address}"
+                    )
+                else:
+                    logging.info(
+                        f"successfully removed {ip} with device ID {cvuv_registry_ips[ip]} from {cclearv_ip_address}"
+                    )
             except KeyError as e:
                 logging.error(f"failed to remove {ip}, no device ID: {e}")
         else:
             logging.info(f"skipping {ip} removal: apparently, it is still alive")
+
+
+def get_cclearv_ip_address(
+    compute_client: azure.mgmt.compute.ComputeManagementClient,
+    network_client: azure.mgmt.network.NetworkManagementClient,
+    resource_group_name: str,
+) -> typing.Optional[str]:
+    cclearv_instance = get_vm_by_tag(
+        compute_client, appliance_type_key, appliance_type_value, resource_group_name
+    )
+    if cclearv_instance is None:
+        logging.error(
+            f"Failed to find cClear-V instance with tag {appliance_type_key}={appliance_type_value}: bailing"
+        )
+        return
+
+    cclearv_ip_address = get_vm_primary_ip_address(
+        cclearv_instance, network_client, resource_group_name
+    )
+
+    if cclearv_ip_address is None:
+        logging.error(f"failed to get primary IP address for cClear-V instance")
+        return
+
+    return cclearv_ip_address
 
 
 def delete_cvuv(cclearv_ip: str, cvuv_id: str) -> typing.Optional[typing.Dict]:
@@ -213,9 +214,8 @@ def delete_cvuv(cclearv_ip: str, cvuv_id: str) -> typing.Optional[typing.Dict]:
 def activate_cvuv_metrics(
     cclearv_ip: str, device_id: str, device_name: str
 ) -> typing.Optional[typing.Dict]:
-    cclearv_url = f"https://{cclearv_ip}/cfg/metrics_config"
+    cclearv_url = f"https://{cclearv_ip}/cvu/metrics_config"
     payload = {
-        "category": "cvu",
         "device_oid": device_id,
         "device_name": device_name,
         "config": {
@@ -254,10 +254,9 @@ def device_auth(cclearv_ip: str, device_id: str) -> typing.Optional[typing.Dict]
         return None
 
 
-def configure_influx(
-    cvuv_ip: str, cclearv_ip: str, cclearv_user: str, cclearv_password: str
-) -> typing.Optional[typing.Dict]:
+def configure_influx(cvuv_ip: str, cclearv_ip: str) -> typing.Optional[typing.Dict]:
     cvuv_url = f"https://{cvuv_ip}/admin-api/2022/system_settings"
+    cclearv_user, cclearv_password = get_cpacket_credentials()
     payload = {
         "stats_db_user": cclearv_user,
         "stats_db_pswd": cclearv_password,
@@ -265,7 +264,7 @@ def configure_influx(
     }
     response = send_prepared_request(
         requests.Request(
-            "PATCH", cvuv_url, json=payload, auth=get_cpacket_credentials()
+            "PATCH", cvuv_url, json=payload, auth=(cclearv_user, cclearv_password)
         ).prepare()
     )
     if response is not None:
@@ -287,6 +286,7 @@ def register_cvuv(
         "verify_ssl": False,
         "deviceId": device_id,
     }
+    logging.info(f"register cVu-V POST payload\n: {json.dumps(payload)}")
     response = send_prepared_request(
         requests.Request(
             "POST", cclearv_url, json=payload, auth=get_cpacket_credentials()
@@ -329,7 +329,6 @@ def vmss_rest_api_list_nics(
     vmss_name: str,
     api_version: str = "2018-10-01",
 ) -> typing.Optional[typing.Dict]:
-
     url = f"https://management.azure.com/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/microsoft.Compute/virtualMachineScaleSets/{vmss_name}/networkInterfaces"
     params = {"api-version": api_version}
     request = requests.Request("GET", url, params=params)
@@ -345,8 +344,8 @@ def vmss_rest_api_list_nics(
 
 def list_registered_cvuvs(
     cclearv_ip: str,
-) -> typing.Optional[typing.Dict[str, typing.Any]]:
-    cclearv_url = f"https://{cclearv_ip}/cfg/debug/dump/"  # note trailing slash
+) -> typing.Optional[typing.List[typing.Dict]]:
+    cclearv_url = f"https://{cclearv_ip}/diag/devices/"  # note trailing slash
     request = requests.Request("GET", cclearv_url, auth=get_cpacket_credentials())
     response = send_prepared_request(request.prepare())
     if response is not None:
@@ -355,52 +354,17 @@ def list_registered_cvuvs(
             return None
         else:
             logging.info(f"decoded: {json.dumps(decoded, indent=4, sort_keys=True)}")
-            devices = decoded["get_device_info"]
-            logging.info(f"devices: {json.dumps(devices, indent=4, sort_keys=True)}")
-            return devices
+            if "cvu" in decoded:
+                devices = decoded["cvu"]
+                logging.info(
+                    f"devices: {json.dumps(devices, indent=4, sort_keys=True)}"
+                )
+                return devices
+            else:
+                logging.info("no cVu-V devices found in call to `/diag/devices/`")
+                return None
     else:
         return None
-
-
-def metrics_config(cclearv_ip: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
-    cclearv_url = (
-        f"https://{cclearv_ip}/cfg/metrics_config"  # note the LACK of a trailing slash
-    )
-    request = requests.Request("GET", cclearv_url, auth=get_cpacket_credentials())
-    response = send_prepared_request(request.prepare())
-    if response is not None:
-        decoded = decode_response(response)
-        if decoded is None:
-            return None
-        else:
-            logging.info(f"decoded: {json.dumps(decoded, indent=4, sort_keys=True)}")
-
-            if "data" not in decoded:
-                logging.error(f"no data in decoded response")
-                return None
-
-            if "metrics" not in decoded["data"]:
-                logging.error(f"no metrics in decoded response")
-                return None
-
-            devices = {}
-            for device in decoded["data"]["metrics"]:
-                logging.info(f"device: {device}")
-                if device["category"] == "cvu":
-                    logging.info(f"cvu: {device}")
-                    devices[device["deviceName"]] = device
-            return devices
-    return None
-
-
-def extract_registered_cvuv_ip(device: str) -> typing.Optional[str]:
-    ip = re.search(r"//(.+)", device)
-    if ip is not None:
-        logging.info(f"found IP address: {ip.group(1)}")
-        return ip.group(1)
-    else:
-        logging.error(f"failed to extract IP address from {device}")
-    return None
 
 
 def decode_response(response: requests.Response) -> typing.Optional[typing.Dict]:
@@ -411,14 +375,12 @@ def decode_response(response: requests.Response) -> typing.Optional[typing.Dict]
         return None
 
 
-# How to return a VM type? What is the type? Where is it located?
 def get_vm_by_tag(
     compute_client: azure.mgmt.compute.ComputeManagementClient,
     tag_name: str,
     tag_value: str,
     resource_group_name: str,
 ) -> typing.Any:
-
     virtual_machines = []
     for vm in compute_client.virtual_machines.list(
         resource_group_name=resource_group_name
@@ -444,27 +406,12 @@ def get_vm_by_tag(
 
 
 def get_cpacket_credentials() -> typing.Tuple[str, str]:
-    # key_vault_uri = f"https://{key_vault_name}.vault.azure.net"
-
-    # credentials = azure.identity.ManagedIdentityCredential()
-    # secrets_client = azure.keyvault.secrets.SecretClient(
-    #     vault_url=key_vault_uri, credential=credentials
-    # )
-    # retrieved_secret = secrets_client.get_secret(appliance_username)
-    # if retrieved_secret is None:
-    #     logging.error(f"failed to get secret '{appliance_username}'")
-    #     return ("", "")
-
-    # password = retrieved_secret.value
-    # if password is None:
-    #     logging.error(f"failed to get secret value for 'cvuv'")
-    #     return ("", "")
-
     password = os.environ["APPLIANCE_HTTP_BASIC_AUTH_PASSWORD"]
     return (appliance_username, password)
 
 
 def test_http(url: str) -> typing.Optional[str]:
+    logging.info(f"testing existing cVu-V instances: GET {url}")
     prepped = requests.Request("GET", url).prepare()
     response = send_prepared_request(prepped)
     if response is not None:
@@ -510,7 +457,7 @@ def send_prepared_request(
                 logging.error(
                     f"HTTP {response.status_code} accessing '{prepared.url}' ({err['name']}): {err['message']}"
                 )
-        except KeyError as kerr:
+        except KeyError:
             logging.error(
                 f"HTTP {response.status_code} accessing '{prepared.url}': {response.text}"
             )
@@ -577,11 +524,3 @@ def get_vm_primary_ip_address(
         return None
 
     return ip_address
-
-
-# # HTTP triggered function
-# @app.function_name(name="something")
-# @app.route(route="something")
-# def register(req: func.HttpRequest) -> func.HttpResponse:
-#
-#     return func.HttpResponse(body="OK", status_code=200)
