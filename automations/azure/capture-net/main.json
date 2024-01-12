@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "12309650318621997260"
+      "templateHash": "4718456848560662471"
     }
   },
   "parameters": {
@@ -433,13 +433,13 @@
             {
               "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
               "properties": {
-                "primary": false
+                "primary": true
               }
             },
             {
               "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
               "properties": {
-                "primary": true
+                "primary": false
               }
             }
           ]

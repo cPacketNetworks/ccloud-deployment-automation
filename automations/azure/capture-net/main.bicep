@@ -473,13 +473,13 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
         {
           id: cstorvManagementNIC.id
           properties: {
-            primary: false
+            primary: true
           }
         }
         {
           id: cstorvCaptureNIC.id
           properties: {
-            primary: true
+            primary: false
           }
         }
 
