@@ -4,57 +4,98 @@ set -o pipefail
 
 root_command() {
   # shellcheck disable=SC2154
-  resource_group="${args['--resource-group']}"
-  if [[ "$(az group list --query "[?name=='$resource_group'] | length(@)")" == 0 ]]; then
-    location="${args['--location']}"
+  location="${args['--location']}"
+  # Check if location is provided as an argument
+  if [[ -z "$location" ]]; then
+    # If not, check if there's a default location set
+    # shellcheck disable=SC2016
+    location="$(az configure --list-defaults --query '[?name==`location`] | [0].value' -o tsv)"
     if [[ -z "$location" ]]; then
-      # shellcheck disable=SC2016
-      location="$(az configure --list-defaults --query '[?name==`location`] | [0].value' -o tsv)"
-      if [[ -z "$location" ]]; then
-        echo "No default location: using 'eastus2'"
-        echo "To list available locations: az account list-locations"
-        echo "To configure the default location: az configure --defaults location=<location>"
-        location='eastus2'
-      fi
+      echo "No location provided and no default location set. Exiting."
+      echo "Please provide a location using the --location argument."
+      echo "Alternatively, to configure the default location: az configure --defaults location=<location>"
+      exit 1
+    else
+      echo "Using default location to create resources: $location"
     fi
-    az group create -n "$resource_group" -l "$location"
   fi
 
-  deployment_id="${args['--deployment-id']}"
-  if [[ -z "$deployment_id" ]]; then
-    deployment_id="$(create_deployment_id)"
+  supplied_resource_group="${args['--resource-group']}"
+  # Check if an RG argument is provided and not empty
+  if [[ -n "$supplied_resource_group" ]]; then
+    # Check if that RG exists, if not, create it
+    if [[ "$(az group list --query "[?name=='$supplied_resource_group'] | length(@)")" == 0 ]]; then
+      echo "Resource group '$supplied_resource_group' does not exist, creating it ..."
+      az group create -n "$supplied_resource_group" -l "$location"
+      echo "Created new resource group: $supplied_resource_group."
+    else
+      echo "Using Resource group: '$supplied_resource_group'"
+    fi
+    resource_group="$supplied_resource_group"
+  else
+    echo "Resource group not specified. Exiting."
+    exit 1
   fi
 
-  storage_account="${args['--storage-account']}"
-  if [[ -z "$storage_account" ]]; then
-    storage_account="$(echo "cloudimages${deployment_id}" | tr '[:upper:]' '[:lower:]')"
-  fi
-
-  if [[ "$(az storage account list --query "[?name=='$storage_account'] | length(@)")" == 0 ]]; then
+  supplied_storage_account="${args['--storage-account']}"
+  if [[ -n "$supplied_storage_account" ]]; then
+    if [[ "$(az storage account list --query "[?name=='$supplied_storage_account'] | length(@)")" == 0 ]]; then
+      echo "Storage account '$supplied_storage_account' does not exist"
+      exit 1
+    fi
+  else
+    generated_storage_account="ccloudimages$(create_random_id)"
     az storage account create \
       --resource-group "$resource_group" \
-      --name "$storage_account"
+      --name "$generated_storage_account" \
+      --location "$location"
   fi
 
-  echo "Creating images in resource group: ${resource_group}"
-  echo "Using storage account: ${storage_account}"
+  if [[ -n "$supplied_storage_account" ]]; then
+    storage_account="$supplied_storage_account"
+  else
+    storage_account="$generated_storage_account"
+  fi
+  echo "Using storage account: $storage_account"
 
+  supplied_container="${args['--container']}"
+
+  if [[ -n "$supplied_container" ]]; then
+    container="$supplied_container"
+  else
+    container="ccloudimages$(create_random_id)"
+  fi
+  echo "Using container: $container"
+
+  az storage container create \
+    --account-name "${storage_account}" \
+    --name "$container" \
+    --auth-mode login
+
+  echo "Container '$container' created ..."
+
+  echo "Creating images in resource group: ${resource_group} and VHDs in storage account: ${storage_account} container: ${container} ..."
   sas_urls_file="${args['--file']}"
 
   if [ -f "$sas_urls_file" ]; then
-
     echo "File '$sas_urls_file' is present, reading from it ..."
 
     # Using file descriptor 9 to avoid conflicts with STDIN.
     # If anything consumes STDIN, it will not be available for the loop.
-    while IFS= read -r -u9 url; do
-      echo "processing '$url' ..."
-      create_image \
-        "$url" \
-        "${args['--resource-group']}" \
-        "$storage_account" \
-        "${args['--expiry']}" \
-        "$(azure_get_user)"
+    # Read entire file including last line
+    while IFS= read -r -u9 line || [ -n "$line" ]; do
+      # Ignore empty lines
+      if [ -n "$line" ]; then
+        url=$(echo "$line" | xargs) # Trim whitespace around URL by piping into xargs
+        echo "processing '$url' ..."
+        create_image \
+          "$url" \
+          "$resource_group" \
+          "$storage_account" \
+          "$(azure_get_user)" \
+          "$container" \
+          "$location"
+      fi
     done 9<"$sas_urls_file"
 
   else
@@ -69,20 +110,16 @@ root_command() {
     while read -r -u9 url; do
       create_image \
         "$url" \
-        "${args['--resource-group']}" \
+        "$resource_group" \
         "$storage_account" \
-        "${args['--expiry']}" \
-        "$(azure_get_user)"
+        "$(azure_get_user)" \
+        "$container" \
+        "$location"
     done 9<"$sas_urls_file"
 
     rm "$sas_urls_file"
 
   fi
-
-  az storage account delete \
-    --yes \
-    --resource-group "$resource_group" \
-    --name "$storage_account"
 
 }
 
@@ -110,27 +147,25 @@ ccloud_azure_images_usage() {
   if [[ -n $long_usage ]]; then
     printf "%s\n" "Options:"
 
-    printf "  %s\n" "--file, -f STRING"
-    printf "    File containing the Shared Access Signature (SAS) URLs for the cPacket\n    ccloud appliances\n"
+    printf "  %s\n" "--file, -f FILE"
+    printf "    File containing the Shared Access Signature (SAS) URLs for the cPacket\n    ccloud appliances. Please provide one URL per line in the file.\n"
     printf "    Default: ccloud-urls.txt\n"
     echo
 
-    printf "  %s\n" "--storage-account, -a STRING"
-    printf "    Storage account\n"
+    printf "  %s\n" "--storage-account, -a STORAGE-ACCOUNT"
+    printf "    Storage account to store the containers with the cpacket image blobs. If a\n    storage account is not provided, one will be created in a resource group.\n"
     echo
 
-    printf "  %s\n" "--resource-group, -g STRING"
-    printf "    Resource group\n"
-    printf "    Default: cpacket-ccloud\n"
+    printf "  %s\n" "--container, -c CONTAINER"
+    printf "    Container to store the cpacket image blobs. If a container is not provided,\n    a uniquely named one will be created.\n"
     echo
 
-    printf "  %s\n" "--location, -l STRING"
-    printf "    Azure location\n    To list available locations:\n      az account list-locations\n    To configure the default location:\n      e.g. az configure --defaults location=eastus2\n"
+    printf "  %s\n" "--resource-group, -g RESOURCE-GROUP (required)"
+    printf "    Resource group to place all the resources in. If it doesn't exist, it will\n    be created with the name provided.\n"
     echo
 
-    printf "  %s\n" "--expiry, -e EXPIRY DATE"
-    printf "    Expiry date used to copy the image from cPacket to destination subscription.\n    This is an internal value.\n"
-    printf "    Default: 1 days\n"
+    printf "  %s\n" "--location, -l LOCATION"
+    printf "    Azure location to create the resources in. If not provided, the default\n    location will be used.\n    To list available locations:\n      az account list-locations\n    To configure the default location:\n      e.g. az configure --defaults location=eastus2\n"
     echo
 
     printf "  %s\n" "--help, -h"
@@ -196,26 +231,36 @@ inspect_args() {
 
 # https://arsenvlad.medium.com/creating-vhd-azure-blob-sas-url-from-azure-managed-image-2be0e7c287f4
 create_image() {
-  local url="$1"
+  local source_url="$1"
   local resource_group="$2"
   local storage_account="$3"
-  local expiry="$4"
-  local created_by="$5"
+  local created_by="$4"
+  local container="$5"
+  local location="$6"
 
   local image_name
-  image_name=$(get_filename "$url")
 
-  container="ccloudimages${RANDOM}"
+  filename=$(get_filename "$source_url")
+  image_name="${filename%.vhd}"
 
-  az storage container create \
-    --resource-group "${resource_group}" \
-    --account-name "${storage_account}" \
-    --name "$container" \
-    --auth-mode login
+  # --permissions: The permissions for the resource that the SAS URL points to.
+  # Allowed values:
+  #  (a)dd
+  #  (c)reate
+  #  (d)elete
+  #  (e)xecute
+  #  (f)ilter_by_tags
+  #  (i)set_immutability_policy
+  #  (l)ist
+  #  (m)ove
+  #  (r)ead
+  #  (t)ag
+  #  (w)rite
+  #  (x)delete_previous_version
+  #  (y)permanent_delete.
 
-  echo "Temporary container '$container' created ..."
-
-  sas_expiry=$(generate_expiry "$expiry")
+  # If copying lasts more than one day, we have a problem.
+  sas_expiry=$(generate_expiry_days "1")
   sas_token=$(az storage container generate-sas \
     --account-name "${storage_account}" \
     --expiry "$sas_expiry" \
@@ -224,35 +269,54 @@ create_image() {
     --output tsv \
     --permissions acw)
 
-  container_url="https://${storage_account}.blob.core.windows.net/${container}?${sas_token}"
+  destination_url="https://${storage_account}.blob.core.windows.net/${container}"
+  sas_destination_url="${destination_url}?${sas_token}"
 
   # Copy the image from cPacket subscription to the destination subscription
   # TODO: use native 'az copy' facility when it becomes available
-  azcopy copy --check-length=false --recursive "$url" "$container_url"
+  azcopy copy --check-length=false --recursive "$source_url" "$sas_destination_url"
 
-  # Create the Azure image for the cCloud appliance
-  source_image="https://${storage_account}.blob.core.windows.net/${container}/${image_name}.vhd"
-  az image create \
+  # Create the Azure image for the cCloud appliance if it doesn't exist
+  # Unlike the VHD images, these are used for creating VMs
+  existing_image=$(az image show \
     -g "${resource_group}" \
     -n "$image_name" \
-    --os-type Linux \
-    --source "$source_image" \
-    --tags "createdby=${created_by}"
+    --query "name" \
+    -o tsv 2>/dev/null || true)
 
-  az storage container delete \
-    --only-show-errors \
-    --account-name "${storage_account}" \
-    --name "$container"
-
+  if [ -z "$existing_image" ]; then
+    echo "Creating image ${image_name}..."
+    image_source="${destination_url}/${filename}"
+    az image create \
+      -g "${resource_group}" \
+      -n "$image_name" \
+      --location "$location" \
+      --os-type Linux \
+      --source "$image_source" \
+      --tags "createdby=${created_by}"
+  else
+    echo "Image ${image_name} already exists in this resource group. Skipping..."
+  fi
 }
 
-create_deployment_id() {
-  echo "$RANDOM" | base64 | head -c 6
-}
-
-generate_expiry() {
+generate_expiry_days() {
   local duration="$1"
-  date --date="+${duration}" +"%Y-%m-%dT%H:%M:%SZ"
+  local datetime
+  if command -v gdate >/dev/null 2>&1; then
+    # Use gdate if available (macOS with GNU coreutils installed)
+    datetime=$(gdate -u -d "+${duration} day" +"%Y-%m-%dT%H:%M:%SZ")
+  elif [[ "$OSTYPE" == "darwin"* ]]; then
+    # MacOS default date utility
+    datetime=$(date -u -j -v "+${duration}d" +"%Y-%m-%dT%H:%M:%SZ")
+  elif command -v date >/dev/null 2>&1; then
+    # Use date if available (Linux)
+    datetime=$(date -u -d "+${duration} day" +"%Y-%m-%dT%H:%M:%SZ")
+  else
+    # Date utility not found
+    echo "Date utility not found or date format is not what we expect. Please install GNU coreutils."
+    exit 1
+  fi
+  echo "$datetime"
 }
 
 get_filename() {
@@ -261,35 +325,22 @@ get_filename() {
   # If the URI is 'https://something.blob.core.windows.net/container/filename?key1=value1&key2=value2',
   # ... retrieve 'https://something.blob.core.windows.net/container/filename.vhd'
   uri="${uri%\?*}"
+
   # Greedily remove everything up to, and including, the last '/'.
   # If the URI is 'https://something.blob.core.windows.net/container/filename.vhd',
   # ... retrieve 'filename.vhd'.
   filename="${uri##*/}"
 
-  # chop of .vhd extension
-  name="${filename%.vhd}"
-
-  echo "$name"
+  echo "$filename"
 }
 
-get_product() {
-  local resource_id="$1"
-  local without_version
-  local without_versions_string
-  without_version="${resource_id%/*}"
-  without_versions_string="${without_version%/versions}"
-  echo "${without_versions_string##*/}"
+create_random_id() {
+  echo "$RANDOM" | base64 | head -c 6 | tr '[:upper:]' '[:lower:]'
 }
 
 azure_get_user() {
   # whoami
   az ad signed-in-user show --query 'userPrincipalName' -o tsv
-}
-
-# shellcheck disable=SC2148
-get_version() {
-  local resource_id="$1"
-  echo "${resource_id##*/}"
 }
 
 parse_requirements() {
@@ -342,7 +393,7 @@ parse_requirements() {
           shift
           shift
         else
-          printf "%s\n" "--file requires an argument: --file, -f STRING" >&2
+          printf "%s\n" "--file requires an argument: --file, -f FILE" >&2
           exit 1
         fi
         ;;
@@ -355,7 +406,20 @@ parse_requirements() {
           shift
           shift
         else
-          printf "%s\n" "--storage-account requires an argument: --storage-account, -a STRING" >&2
+          printf "%s\n" "--storage-account requires an argument: --storage-account, -a STORAGE-ACCOUNT" >&2
+          exit 1
+        fi
+        ;;
+
+      --container | -c)
+
+        if [[ -n ${2+x} ]]; then
+
+          args['--container']="$2"
+          shift
+          shift
+        else
+          printf "%s\n" "--container requires an argument: --container, -c CONTAINER" >&2
           exit 1
         fi
         ;;
@@ -368,7 +432,7 @@ parse_requirements() {
           shift
           shift
         else
-          printf "%s\n" "--resource-group requires an argument: --resource-group, -g STRING" >&2
+          printf "%s\n" "--resource-group requires an argument: --resource-group, -g RESOURCE-GROUP" >&2
           exit 1
         fi
         ;;
@@ -381,20 +445,7 @@ parse_requirements() {
           shift
           shift
         else
-          printf "%s\n" "--location requires an argument: --location, -l STRING" >&2
-          exit 1
-        fi
-        ;;
-
-      --expiry | -e)
-
-        if [[ -n ${2+x} ]]; then
-
-          args['--expiry']="$2"
-          shift
-          shift
-        else
-          printf "%s\n" "--expiry requires an argument: --expiry, -e EXPIRY DATE" >&2
+          printf "%s\n" "--location requires an argument: --location, -l LOCATION" >&2
           exit 1
         fi
         ;;
@@ -414,14 +465,17 @@ parse_requirements() {
     esac
   done
 
+  if [[ -z ${args['--resource-group']+x} ]]; then
+    printf "missing required flag: --resource-group, -g RESOURCE-GROUP\n" >&2
+    exit 1
+  fi
+
   [[ -n ${args['--file']:-} ]] || args['--file']="ccloud-urls.txt"
-  [[ -n ${args['--resource-group']:-} ]] || args['--resource-group']="cpacket-ccloud"
-  [[ -n ${args['--expiry']:-} ]] || args['--expiry']="1 days"
 
 }
 
 initialize() {
-  version="x.y.z"
+  version="1.4.38"
   long_usage=''
   set -e
 

@@ -34,23 +34,13 @@ Upload this `ccloud-urls.txt` file to the Azure cloud shell.
 
 The `ccloud-azure-images` script will create the images in your Azure subscription using the URLs provided in `ccloud-urls.txt`.
 
-If you are creating a new resource group with a default name, you can pipe the script directly through the shell as the following invocation:
+Pipe the script directly through the shell viathe following invocation:
 
 ```bash
-curl -s -L https://raw.githubusercontent.com/cPacketNetworks/ccloud-deployment-automation/main/automations/azure/ccloud-azure-images/ccloud-azure-images | bash
+curl -L https://raw.githubusercontent.com/cPacketNetworks/ccloud-deployment-automation/main/automations/azure/ccloud-azure-images/ccloud-azure-images | bash -s -- -g cpacket-azure -l westus2 
 ```
 
-This creates a new resource group with a name such as `cpacket-ccloud-abc123` in the `eastus2` region.
-
-Instead, if you have an existing resource group or would like to create the resource group with a specific name, first download the script and then supply it with the name of your resource group.
-
-Execute the script with the `-g` flag:
-
-```bash
-curl -L https://raw.githubusercontent.com/cPacketNetworks/ccloud-deployment-automation/main/automations/azure/ccloud-azure-images/ccloud-azure-images | bash -s -- -g resource-group-name
-```
-
-After executing the script, you should have new resources in your resource group corresponding to the cCloud appliances in the URL file above:
+After executing the script, you should have cPacket image resources in a resource group called `cpacket-azure` in the `westus2` region.
 
 ![New resources](/static-assets/new-resources.png "cCloud images")
 
