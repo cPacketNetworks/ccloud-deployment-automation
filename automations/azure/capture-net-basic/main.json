@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "13842411952267345681"
+      "templateHash": "12814702317090101002"
     }
   },
   "parameters": {
@@ -115,7 +115,6 @@
     },
     "cvuv_cloud_init_template": "#!/bin/bash\nset -ex\n\necho \"set -o vi\" >>/home/ubuntu/.bashrc\necho \"set -o vi\" >>/root/.bashrc\n\nbootconfig_file=\"/home/cpacket/boot_config.toml\"\n\n# Comma-separated list of IPV4 addresses\ndownstream_tools=\"DOWNSTREAM_CAPTURE_IPS\"\n\n# Convert the comma-separated list into an array\nIFS=',' read -r -a downstream_tool_addresses <<<\"$(echo \"$downstream_tools\" | tr -d '[:space:]')\"\n\ncapture_nic=\"eth0\"\ncapture_nic_ip=$(ip a show dev \"$capture_nic\" | awk -F'[ /]' '/inet /{print $6}')\n\ntouch \"$bootconfig_file\"\nchmod a+w \"$bootconfig_file\"\n\ncat >\"$bootconfig_file\" <<BOOTCFG_HEADER\nvm_type = \"azure\"\ncvuv_mode = \"inline\"\ncvuv_mirror_eth_0 = \"$capture_nic\"\nBOOTCFG_HEADER\n\nfor tools_index in \"${!downstream_tool_addresses[@]}\"; do\n  name_index=$((tools_index))\n  leet_index=$((tools_index + 1337))\n  cat >>\"$bootconfig_file\" <<ADDITIONAL_TOOLS\ncvuv_vxlan_id_${name_index} = ${leet_index}\ncvuv_vxlan_srcip_${name_index} = \"$capture_nic_ip\"\ncvuv_vxlan_remoteip_${name_index} = \"${downstream_tool_addresses[$tools_index]}\"\nADDITIONAL_TOOLS\ndone\n\n# cat >>\"$bootconfig_file\" <<FOOTER\n# FOOTER\n\necho \"boot configuration: completed\"\n",
     "cvuv_cloud_init": "[replace(variables('cvuv_cloud_init_template'), 'DOWNSTREAM_CAPTURE_IPS', if(empty(parameters('cstorvCaptureIpAddress')), parameters('downstreamTools'), format('{0},{1}', parameters('cstorvCaptureIpAddress'), parameters('downstreamTools'))))]",
-    "cstorv_cloud_init_template": "#!/bin/bash\nset -ex\n\ncapture_nic_ip=\"CSTORV_CAPTURE_IP\"\ncapture_nic=\"eth0\"\nmanagement_nic_ip=\"CSTORV_MANAGEMENT_IP\"\nmanagement_nic=\"eth1\"\n\nconfig_file=\"/home/cpacket/boot_config.toml\"\ntouch \"$config_file\"\nchmod a+w /home/cpacket/boot_config.toml\n\ncat >/home/cpacket/boot_config.toml <<EOF_BOOTCFG\nvm_type = \"azure\"\ndecap_mode = \"vxlan\"\ncapture_mode =  \"libpcap\"\neth_dev  = \"$capture_nic\"\ncapture_nic_index = 0\ncapture_nic_eth = \"$capture_nic\"\ncapture_nic_ip = \"$capture_nic_ip\"\nmanagement_nic_eth = \"$management_nic\"\nmanagement_nic_ip = \"$management_nic_ip\"\nnum_pcap_bufs = 2\nEOF_BOOTCFG\n",
     "monitoringSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name))]",
     "managementSubnetId": "[if(equals(parameters('virtualNetwork').newOrExisting, 'new'), resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name), resourceId(parameters('virtualNetwork').resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name))]"
   },
@@ -297,9 +296,9 @@
         },
         "osProfile": {
           "computerName": "[parameters('cclearvName')]",
+          "linuxConfiguration": "[variables('linuxConfiguration')]",
           "adminUsername": "[parameters('adminUser')]",
-          "adminPassword": "[parameters('sshPublicKey')]",
-          "linuxConfiguration": "[variables('linuxConfiguration')]"
+          "adminPassword": "[parameters('sshPublicKey')]"
         }
       },
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), union(parameters('tags')['Microsoft.Compute/virtualMachines'], createObject('cpacket:ApplianceType', 'cClear-V')), createObject('cpacket:ApplianceType', 'cClear-V'))]",
@@ -312,12 +311,12 @@
       "condition": "[parameters('cstorvEnable')]",
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2023-04-01",
-      "name": "[format('{0}-cap-nic', parameters('cstorvName'))]",
+      "name": "[format('{0}-nic', parameters('cstorvName'))]",
       "location": "[parameters('location')]",
       "properties": {
         "ipConfigurations": [
           {
-            "name": "[format('{0}-cap-ipcfg', parameters('cstorvName'))]",
+            "name": "[format('{0}-ipcfg', parameters('cstorvName'))]",
             "properties": {
               "privateIPAllocationMethod": "Static",
               "privateIPAddress": "[parameters('cstorvCaptureIpAddress')]",
@@ -337,35 +336,6 @@
         "[resourceId('Microsoft.Network/networkSecurityGroups', 'captureSecurityGroup')]",
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
-      ]
-    },
-    {
-      "condition": "[parameters('cstorvEnable')]",
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2023-04-01",
-      "name": "[format('{0}-mgmt-nic', parameters('cstorvName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "[format('{0}-mgmt-ipcfg', parameters('cstorvName'))]",
-            "properties": {
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
-              },
-              "privateIPAllocationMethod": "Dynamic"
-            }
-          }
-        ],
-        "enableAcceleratedNetworking": true,
-        "networkSecurityGroup": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]"
-        }
-      },
-      "tags": "[if(contains(parameters('tags'), 'Microsoft.Network/networkInterfaces'), parameters('tags')['Microsoft.Network/networkInterfaces'], null())]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups', 'managementSecurityGroup')]",
-        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
       ]
     },
     {
@@ -406,31 +376,23 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('cstorvName')))]",
               "properties": {
                 "primary": false
-              }
-            },
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
-              "properties": {
-                "primary": true
               }
             }
           ]
         },
         "osProfile": {
           "computerName": "[parameters('cstorvName')]",
-          "adminUsername": "[parameters('adminUser')]",
-          "adminPassword": "[parameters('sshPublicKey')]",
           "linuxConfiguration": "[variables('linuxConfiguration')]",
-          "customData": "[base64(replace(replace(variables('cstorv_cloud_init_template'), 'CSTORV_CAPTURE_IP', parameters('cstorvCaptureIpAddress')), 'CSTORV_MANAGEMENT_IP', reference(resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName'))), '2023-04-01').ipConfigurations[0].properties.privateIPAddress))]"
+          "adminUsername": "[parameters('adminUser')]",
+          "adminPassword": "[parameters('sshPublicKey')]"
         }
       },
       "tags": "[if(contains(parameters('tags'), 'Microsoft.Compute/virtualMachines'), parameters('tags')['Microsoft.Compute/virtualMachines'], null())]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-cap-nic', parameters('cstorvName')))]",
-        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-mgmt-nic', parameters('cstorvName')))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('cstorvName')))]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },
