@@ -174,12 +174,10 @@ resource managementSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01'
   properties: {
     addressPrefix: virtualNetwork.subnets.managementSubnet.addressPrefix
     networkSecurityGroup: {
-      id: managementSecurityGroup.id
+      id: captureSecurityGroup.id
     }
   }
 }
-
-var managementSubnetId = virtualNetwork.newOrExisting == 'new' ? managementSubnet.id : resourceId(virtualNetwork.resourceGroup, 'Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, virtualNetwork.subnets.managementSubnet.name)
 
 // docs: https://learn.microsoft.com/en-us/azure/templates/microsoft.network/loadbalancers?pivots=deployment-language-bicep
 resource lb 'Microsoft.Network/loadBalancers@2021-05-01' = {
@@ -274,7 +272,7 @@ resource cclearNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = {
     ]
     enableAcceleratedNetworking: true
     networkSecurityGroup: {
-      id: managementSecurityGroup.id
+      id: captureSecurityGroup.id
     }
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
@@ -627,8 +625,8 @@ resource vmssautoscalesettings 'Microsoft.Insights/autoscalesettings@2021-05-01-
   }
 }
 
-resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-02-01' = {
-  name: 'managementSecurityGroup'
+resource captureSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-02-01' = {
+  name: 'captureSecurityGroup'
   location: location
   properties: {
     securityRules: [
@@ -656,28 +654,6 @@ resource managementSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-0
           sourcePortRange: '*'
           destinationAddressPrefix: '*'
           destinationPortRange: '443'
-        }
-      }
-    ]
-  }
-}
-
-resource captureSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-02-01' = {
-  name: 'captureSecurityGroup'
-  location: location
-  properties: {
-    securityRules: [
-      {
-        name: 'allow-vxlan'
-        properties: {
-          priority: 100
-          protocol: 'Udp'
-          access: 'Allow'
-          direction: 'Inbound'
-          sourceAddressPrefix: '*'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '4789'
         }
       }
     ]
