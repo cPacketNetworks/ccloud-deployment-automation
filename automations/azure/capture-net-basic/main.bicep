@@ -321,16 +321,16 @@ resource cclearVm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
     }
     osProfile: {
       computerName: cclearvName
+      linuxConfiguration: linuxConfiguration
       adminUsername: adminUser
       adminPassword: sshPublicKey
-      linuxConfiguration: linuxConfiguration
     }
   }
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? union(tags['Microsoft.Compute/virtualMachines'], { 'cpacket:ApplianceType': 'cClear-V' }) : { 'cpacket:ApplianceType': 'cClear-V' }
 }
 
-resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
-  name: '${cstorvName}-cap-nic'
+resource cstorvNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
+  name: '${cstorvName}-nic'
   location: location
   dependsOn: [
     monitoringVnet
@@ -338,7 +338,7 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if 
   properties: {
     ipConfigurations: [
       {
-        name: '${cstorvName}-cap-ipcfg'
+        name: '${cstorvName}-ipcfg'
         properties: {
           privateIPAllocationMethod: 'Static'
           privateIPAddress: cstorvCaptureIpAddress
@@ -351,31 +351,6 @@ resource cstorvCaptureNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if 
     enableAcceleratedNetworking: true
     networkSecurityGroup: {
       id: captureSecurityGroup.id
-    }
-  }
-  tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
-}
-
-// There seems to be an issue when creating VMs that don't have public networking/ip configs setup 
-// seems as though you have to create the nic and VM's separately see https://github.com/Azure/azure-rest-api-specs/issues/19446 
-resource cstorvManagementNIC 'Microsoft.Network/networkInterfaces@2023-04-01' = if (cstorvEnable) {
-  name: '${cstorvName}-mgmt-nic'
-  location: location
-  properties: {
-    ipConfigurations: [
-      {
-        name: '${cstorvName}-mgmt-ipcfg'
-        properties: {
-          subnet: {
-            id: managementSubnet.id
-          }
-          privateIPAllocationMethod: 'Dynamic'
-        }
-      }
-    ]
-    enableAcceleratedNetworking: true
-    networkSecurityGroup: {
-      id: managementSecurityGroup.id
     }
   }
   tags: contains(tags, 'Microsoft.Network/networkInterfaces') ? tags['Microsoft.Network/networkInterfaces'] : null
@@ -418,26 +393,19 @@ resource cstorvm 'Microsoft.Compute/virtualMachines@2021-03-01' = if (cstorvEnab
     networkProfile: {
       networkInterfaces: [
         {
-          id: cstorvManagementNIC.id
-          properties: {
-            primary: true
-          }
-        }
-        {
-          id: cstorvCaptureNIC.id
+          id: cstorvNIC.id
           properties: {
             primary: false
           }
         }
-
       ]
     }
 
     osProfile: {
       computerName: cstorvName
+      linuxConfiguration: linuxConfiguration
       adminUsername: adminUser
       adminPassword: sshPublicKey
-      linuxConfiguration: linuxConfiguration
     }
   }
   tags: contains(tags, 'Microsoft.Compute/virtualMachines') ? tags['Microsoft.Compute/virtualMachines'] : null
