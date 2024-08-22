@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.22.6.54827",
-      "templateHash": "7873967004450543009"
+      "templateHash": "7717624437475134284"
     }
   },
   "parameters": {
@@ -444,14 +444,14 @@
             },
             "networkInterfaceConfigurations": [
               {
-                "name": "[format('{0}-cvuv-cap-nic', parameters('deploymentId'))]",
+                "name": "[format('{0}-cvuv-nic', parameters('deploymentId'))]",
                 "properties": {
                   "primary": true,
                   "enableAcceleratedNetworking": true,
                   "enableIPForwarding": true,
                   "ipConfigurations": [
                     {
-                      "name": "[format('{0}-cap-ipcfg', parameters('deploymentId'))]",
+                      "name": "[format('{0}-ipcfg', parameters('deploymentId'))]",
                       "properties": {
                         "subnet": {
                           "id": "[variables('monitoringSubnetId')]"
@@ -465,24 +465,6 @@
                     }
                   ]
                 }
-              },
-              {
-                "name": "[format('{0}-cvuv-man-nic', parameters('deploymentId'))]",
-                "properties": {
-                  "primary": false,
-                  "enableAcceleratedNetworking": true,
-                  "enableIPForwarding": false,
-                  "ipConfigurations": [
-                    {
-                      "name": "[format('{0}-man-ipcfg', parameters('deploymentId'))]",
-                      "properties": {
-                        "subnet": {
-                          "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]"
-                        }
-                      }
-                    }
-                  ]
-                }
               }
             ]
           }
@@ -491,7 +473,6 @@
       "dependsOn": [
         "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.monitoringSubnet.name)]",
         "[resourceId('Microsoft.Network/loadBalancers', parameters('lbName'))]",
-        "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetwork').name, parameters('virtualNetwork').subnets.managementSubnet.name)]",
         "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetwork').name)]"
       ]
     },

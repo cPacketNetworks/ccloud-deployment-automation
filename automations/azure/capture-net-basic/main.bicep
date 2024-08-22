@@ -504,7 +504,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
 
         networkInterfaceConfigurations: [
           {
-            name: '${deploymentId}-cvuv-cap-nic'
+            name: '${deploymentId}-cvuv-nic'
 
             properties: {
               primary: true
@@ -512,7 +512,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
               enableIPForwarding: true
               ipConfigurations: [
                 {
-                  name: '${deploymentId}-cap-ipcfg'
+                  name: '${deploymentId}-ipcfg'
                   properties: {
                     subnet: {
                       id: monitoringSubnetId
@@ -527,31 +527,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2022-11-01' = {
               ]
             }
           }
-          {
-            name: '${deploymentId}-cvuv-man-nic'
-
-            properties: {
-              primary: false
-              enableAcceleratedNetworking: true
-              enableIPForwarding: false
-              ipConfigurations: [
-                {
-                  name: '${deploymentId}-man-ipcfg'
-                  properties: {
-                    subnet: {
-                      id: managementSubnet.id
-                    }
-                    // loadBalancerBackendAddressPools: [
-                    //   {
-                    //     id: lbPoolId
-                    //   }
-                    // ]
-                  }
-                }
-              ]
-            }
-          } ]
-
+        ]
       }
 
     }
