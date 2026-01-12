@@ -1,4 +1,6 @@
 # cCloud deployment
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FcPacketNetworks%2Fccloud-deployment-automation.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FcPacketNetworks%2Fccloud-deployment-automation?ref=badge_shield)
+
 
 > Caution ⚠️: This is currently unofficial, pre-release software.
 > The Git repository is for the purpose of testing and development only, and its history will be re-written.
@@ -22,3 +24,7 @@ The content is meant to supplement officially released cPacket documentation and
 ## Contributing and reporting bugs
 
 See the [CONTRIBUTING.md](docs/CONTRIBUTING.md) guide.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FcPacketNetworks%2Fccloud-deployment-automation.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FcPacketNetworks%2Fccloud-deployment-automation?ref=badge_large)
